@@ -35,6 +35,8 @@ export function EighthwallCanvas({ appKey, children, style }: EighthwallCanvasPr
   useLayoutEffect(() => {
     // Children's useLayoutEffect (ImageTracker) runs before this.
     // By this point, all registerTarget calls have completed.
+    // カメラ映像パススルーはXR8のパイプラインが内部で処理する。
+    // 開発者はscene.backgroundを手動で設定する必要はない。
     let stopped = false
     let injectedScript: HTMLScriptElement | null = null
 

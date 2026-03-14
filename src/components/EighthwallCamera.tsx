@@ -17,6 +17,7 @@ export function EighthwallCamera() {
   const cameraDataRef = useRef<XRCameraProcessedDetail | null>(null)
 
   useEffect(() => {
+    if (!xr8) return  // xr8がnullの間はリスナーを登録しない
     const canvas = gl.domElement
 
     function onCameraProcessed(e: Event) {
