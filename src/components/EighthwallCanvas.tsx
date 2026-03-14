@@ -7,7 +7,15 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   return new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)
     if (existing) {
-      resolve({ script: existing, isNew: false })
+      if (window.XR8) {
+        // Script already executed and XR8 is ready
+        resolve({ script: existing, isNew: false })
+      } else {
+        // Script is still loading — wait for xr.js to set window.XR8
+        // xr.js dispatches 'xrloaded' (via setTimeout) after window.XR8 = I
+        window.addEventListener('xrloaded', () => resolve({ script: existing, isNew: false }), { once: true })
+        existing.addEventListener('error', reject, { once: true })
+      }
       return
     }
     const script = document.createElement('script')
