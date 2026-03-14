@@ -20,6 +20,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
     }
     const script = document.createElement('script')
     script.src = src
+    script.setAttribute('data-preload-chunks', 'slam')
     script.onload = () => resolve({ script, isNew: true })
     script.onerror = reject
     document.head.appendChild(script)
@@ -46,6 +47,7 @@ export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: Ei
     let injectedScript: HTMLScriptElement | null = null
 
     async function initXR() {
+      console.log('[8thwall-r3f] build v3 — initXR start')
       const { script, isNew } = await loadScript(xrSrc)
       if (isNew) injectedScript = script  // 自分が作成したものだけ保持
       if (stopped) return
