@@ -10,7 +10,7 @@ vi.mock('@react-three/fiber', () => ({
 
 vi.mock('three', async () => {
   const actual = await vi.importActual<typeof import('three')>('three')
-  const makeCopyable = () => ({ copy: vi.fn(), setScalar: vi.fn() })
+  const makeCopyable = () => ({ copy: vi.fn(), setScalar: vi.fn(), set: vi.fn(), clone: vi.fn(() => makeCopyable()) })
   return {
     ...actual,
     Vector3: vi.fn(() => makeCopyable()),

@@ -15,6 +15,11 @@ export function EighthwallCamera() {
   const { camera, gl } = useThree()
   const { xr8 } = useXRContext()
   const cameraDataRef = useRef<XRCameraProcessedDetail | null>(null)
+  // オブジェクトを事前確保して再利用（GC圧迫を防ぐ）
+  const _position = useRef(new THREE.Vector3())
+  const _quaternion = useRef(new THREE.Quaternion())
+  const _scale = useRef(new THREE.Vector3(1, 1, 1))
+  const _matrix = useRef(new THREE.Matrix4())
 
   useEffect(() => {
     if (!xr8) return  // xr8がnullの間はリスナーを登録しない
@@ -38,10 +43,10 @@ export function EighthwallCamera() {
     camera.projectionMatrix.fromArray(data.cameraProjectionMatrix)
 
     const { position: p, rotation: r } = data.cameraTransform
-    const position = new THREE.Vector3(p.x, p.y, p.z)
-    const quaternion = new THREE.Quaternion(r.x, r.y, r.z, r.w)
-    const matrix = new THREE.Matrix4().compose(position, quaternion, new THREE.Vector3(1, 1, 1))
-    camera.matrixWorldInverse.copy(matrix).invert()
+    _position.current.set(p.x, p.y, p.z)
+    _quaternion.current.set(r.x, r.y, r.z, r.w)
+    _matrix.current.compose(_position.current, _quaternion.current, _scale.current)
+    camera.matrixWorldInverse.copy(_matrix.current).invert()
   })
 
   return null

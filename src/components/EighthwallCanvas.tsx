@@ -21,7 +21,7 @@ function loadScript(src: string): Promise<HTMLScriptElement> {
   })
 }
 
-export function EighthwallCanvas({ appKey, children, style }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ appKey, children, style, onError }: EighthwallCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
   const targetNamesRef = useRef<string[]>([])
@@ -65,7 +65,10 @@ export function EighthwallCanvas({ appKey, children, style }: EighthwallCanvasPr
       }, { once: true })
     }
 
-    initXR().catch(console.error)
+    initXR().catch((err) => {
+      console.error('[8thwall-r3f] XR initialization failed:', err)
+      onError?.(err)
+    })
 
     return () => {
       stopped = true

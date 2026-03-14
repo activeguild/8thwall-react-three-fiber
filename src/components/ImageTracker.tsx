@@ -19,6 +19,18 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   const [visible, setVisible] = useState(false)
   const targetName = extractTargetName(targetImage)
 
+  // コールバックをrefで保持することで、毎レンダーのイベント再登録を防ぐ
+  const onFoundRef = useRef(onFound)
+  const onUpdatedRef = useRef(onUpdated)
+  const onLostRef = useRef(onLost)
+  useEffect(() => { onFoundRef.current = onFound }, [onFound])
+  useEffect(() => { onUpdatedRef.current = onUpdated }, [onUpdated])
+  useEffect(() => { onLostRef.current = onLost }, [onLost])
+
+  // 事前確保されたThree.jsオブジェクト（GC圧迫を防ぐ）
+  const _position = useRef(new THREE.Vector3())
+  const _rotation = useRef(new THREE.Quaternion())
+
   // Register target name before EighthwallCanvas calls XR8.run()
   useLayoutEffect(() => {
     registerTarget(targetName)
@@ -30,14 +42,18 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
     const canvas = gl.domElement
 
     function applyPose(detail: XRImageEventDetail): ImageFoundEvent {
-      const position = new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z)
-      const rotation = new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w)
+      _position.current.set(detail.position.x, detail.position.y, detail.position.z)
+      _rotation.current.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w)
       if (groupRef.current) {
-        groupRef.current.position.copy(position)
-        groupRef.current.quaternion.copy(rotation)
+        groupRef.current.position.copy(_position.current)
+        groupRef.current.quaternion.copy(_rotation.current)
         groupRef.current.scale.setScalar(detail.scale)
       }
-      return { position, rotation, scale: detail.scale }
+      return {
+        position: _position.current.clone(),
+        rotation: _rotation.current.clone(),
+        scale: detail.scale,
+      }
     }
 
     function onImageFound(e: Event) {
@@ -45,21 +61,21 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
       if (detail.name !== targetName) return
       setVisible(true)
       const event = applyPose(detail)
-      onFound?.(event)
+      onFoundRef.current?.(event)
     }
 
     function onImageUpdated(e: Event) {
       const detail = (e as CustomEvent<XRImageEventDetail>).detail
       if (detail.name !== targetName) return
       const event = applyPose(detail)
-      onUpdated?.(event)
+      onUpdatedRef.current?.(event)
     }
 
     function onImageLost(e: Event) {
       const detail = (e as CustomEvent<{ name: string }>).detail
       if (detail.name !== targetName) return
       setVisible(false)
-      onLost?.()
+      onLostRef.current?.()
     }
 
     canvas.addEventListener('xrimagefound', onImageFound)
@@ -71,7 +87,7 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
       canvas.removeEventListener('xrimageupdated', onImageUpdated)
       canvas.removeEventListener('xrimagelost', onImageLost)
     }
-  }, [xr8, gl, targetName, onFound, onUpdated, onLost])
+  }, [xr8, gl, targetName]) // onFound/Updated/Lost を依存配列から除外
 
   return (
     <group ref={groupRef} visible={visible}>

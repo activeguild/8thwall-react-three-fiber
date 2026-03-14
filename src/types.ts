@@ -27,6 +27,7 @@ export interface EighthwallCanvasProps {
   appKey: string
   children?: React.ReactNode
   style?: React.CSSProperties
+  onError?: (err: unknown) => void
 }
 
 export interface EighthwallCameraProps {
