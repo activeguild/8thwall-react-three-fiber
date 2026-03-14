@@ -1,0 +1,23 @@
+{
+  "name": "8thwall-r3f-example",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@activeguild/8thwall-react-three-fiber": "file:..",
+    "@react-three/fiber": "^8.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}
