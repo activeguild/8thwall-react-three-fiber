@@ -12,7 +12,7 @@ interface XRCameraProcessedDetail {
 }
 
 export function EighthwallCamera() {
-  const { camera, gl } = useThree()
+  const { gl } = useThree()
   const { xr8 } = useXRContext()
   const cameraDataRef = useRef<XRCameraProcessedDetail | null>(null)
   // オブジェクトを事前確保して再利用（GC圧迫を防ぐ）
@@ -36,7 +36,7 @@ export function EighthwallCamera() {
     }
   }, [gl, xr8])
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
     const data = cameraDataRef.current
     if (!data) return
 

@@ -6,16 +6,16 @@ import type { XR8Instance, EighthwallCanvasProps } from '../types'
 // Resolved at build time by Vite's asset handling
 const XR_ENGINE_URL = new URL('../engine/xr.js', import.meta.url).href
 
-function loadScript(src: string): Promise<HTMLScriptElement> {
+function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: boolean }> {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)
     if (existing) {
-      resolve(existing)
+      resolve({ script: existing, isNew: false })
       return
     }
     const script = document.createElement('script')
     script.src = src
-    script.onload = () => resolve(script)
+    script.onload = () => resolve({ script, isNew: true })
     script.onerror = reject
     document.head.appendChild(script)
   })
@@ -41,8 +41,8 @@ export function EighthwallCanvas({ appKey, children, style, onError }: Eighthwal
     let injectedScript: HTMLScriptElement | null = null
 
     async function initXR() {
-      const script = await loadScript(XR_ENGINE_URL)
-      injectedScript = script
+      const { script, isNew } = await loadScript(XR_ENGINE_URL)
+      if (isNew) injectedScript = script  // 自分が作成したものだけ保持
       if (stopped) return
 
       const xr8Instance = window.XR8

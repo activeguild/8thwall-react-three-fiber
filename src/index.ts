@@ -6,4 +6,6 @@ export type {
   EighthwallCameraProps,
   ImageTrackerProps,
   ImageFoundEvent,
+  XR8Instance,
+  XRContextValue,
 } from './types'
