@@ -6,6 +6,7 @@ export default function App() {
   return (
     <EighthwallCanvas
       appKey={APP_KEY}
+      xrSrc="/xr.js"
       style={{ width: '100vw', height: '100vh' }}
       onError={(err) => console.error('XR Error:', err)}
     >

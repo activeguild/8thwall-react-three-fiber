@@ -3,9 +3,6 @@ import { Canvas } from '@react-three/fiber'
 import { XRContext } from '../context/XRContext'
 import type { XR8Instance, EighthwallCanvasProps } from '../types'
 
-// Resolved at build time by Vite's asset handling
-const XR_ENGINE_URL = new URL('../engine/xr.js', import.meta.url).href
-
 function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: boolean }> {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)
@@ -21,7 +18,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ appKey, children, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: EighthwallCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
   const targetNamesRef = useRef<string[]>([])
@@ -41,7 +38,7 @@ export function EighthwallCanvas({ appKey, children, style, onError }: Eighthwal
     let injectedScript: HTMLScriptElement | null = null
 
     async function initXR() {
-      const { script, isNew } = await loadScript(XR_ENGINE_URL)
+      const { script, isNew } = await loadScript(xrSrc)
       if (isNew) injectedScript = script  // 自分が作成したものだけ保持
       if (stopped) return
 
@@ -76,7 +73,7 @@ export function EighthwallCanvas({ appKey, children, style, onError }: Eighthwal
       injectedScript?.remove()
       setXr8(null)
     }
-  }, [appKey])
+  }, [appKey, xrSrc])
 
   const defaultStyle: CSSProperties = {
     width: '100%',

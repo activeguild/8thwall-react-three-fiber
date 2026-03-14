@@ -25,6 +25,7 @@ export interface ImageFoundEvent {
 
 export interface EighthwallCanvasProps {
   appKey: string
+  xrSrc: string
   children?: React.ReactNode
   style?: React.CSSProperties
   onError?: (err: unknown) => void
