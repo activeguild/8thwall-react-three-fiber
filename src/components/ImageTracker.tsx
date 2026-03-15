@@ -31,6 +31,15 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   // null until the first XR8 frame arrives.
   const imuSnapshotRef = useRef<THREE.Quaternion | null>(null)
 
+  // Pre-allocated scratch objects to avoid per-frame heap allocation
+  const scratchSnapshotRef = useRef(new THREE.Quaternion())
+  const scratchDeltaQ = useRef(new THREE.Quaternion())
+  const scratchDeltaQInv = useRef(new THREE.Quaternion())
+  const scratchPosition = useRef(new THREE.Vector3())
+  const scratchXr8Q = useRef(new THREE.Quaternion())
+  const scratchCorrectedPos = useRef(new THREE.Vector3())
+  const scratchCorrectedQ = useRef(new THREE.Quaternion())
+
   useLayoutEffect(() => {
     registerTarget(targetImage)
   }, [registerTarget, targetImage])
@@ -43,7 +52,8 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
       name: moduleName,
       onUpdate: ({ processCpuResult }: any) => {
         // Snapshot IMU every XR8 frame (as close in time as possible to XR8 pose data)
-        imuSnapshotRef.current = getIMUQuaternion().clone()
+        if (!imuSnapshotRef.current) imuSnapshotRef.current = new THREE.Quaternion()
+        imuSnapshotRef.current.copy(getIMUQuaternion())
 
         const detectedImages: XRImagePose[] | undefined = processCpuResult?.reality?.detectedImages
         if (!detectedImages) return
@@ -85,28 +95,31 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   useFrame(() => {
     const pose = latestPoseRef.current
     const snapshot = imuSnapshotRef.current
-    // Skip if no XR8 frame has arrived yet, or if the marker is not detected
     if (!pose || !snapshot || !groupRef.current) return
 
-    // ΔQ = Q_current * Q_snapshot^-1  (rotation since the XR8 frame was captured)
-    const deltaQ = getIMUQuaternion().clone().multiply(snapshot.clone().invert()).normalize()
-    // Inverse delta: undo the camera movement to keep the overlay aligned to the physical marker
-    const deltaQInv = deltaQ.clone().invert()
+    // ΔQ = Q_current * Q_snapshot^-1
+    scratchSnapshotRef.current.copy(snapshot).invert()
+    scratchDeltaQ.current.copy(getIMUQuaternion()).multiply(scratchSnapshotRef.current).normalize()
 
-    const xr8Position = new THREE.Vector3(pose.position.x, pose.position.y, pose.position.z)
-    const xr8Quaternion = new THREE.Quaternion(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
+    // ΔQ_inv
+    scratchDeltaQInv.current.copy(scratchDeltaQ.current).invert()
 
-    const correctedPosition = xr8Position.clone().applyQuaternion(deltaQInv)
-    const correctedQuaternion = deltaQInv.clone().multiply(xr8Quaternion)
+    // Corrected position: ΔQ_inv.apply(xr8_position)
+    scratchPosition.current.set(pose.position.x, pose.position.y, pose.position.z)
+    scratchCorrectedPos.current.copy(scratchPosition.current).applyQuaternion(scratchDeltaQInv.current)
 
-    groupRef.current.position.copy(correctedPosition)
-    groupRef.current.quaternion.copy(correctedQuaternion)
+    // Corrected quaternion: ΔQ_inv * xr8_quaternion
+    scratchXr8Q.current.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
+    scratchCorrectedQ.current.copy(scratchDeltaQInv.current).multiply(scratchXr8Q.current)
+
+    groupRef.current.position.copy(scratchCorrectedPos.current)
+    groupRef.current.quaternion.copy(scratchCorrectedQ.current)
     groupRef.current.scale.setScalar(pose.scale)
 
-    // Fire with corrected pose so consumers stay in sync with what is rendered
+    // Clone scratch for onUpdated consumer (scratch will be overwritten next frame)
     onUpdatedRef.current?.({
-      position: correctedPosition.clone(),
-      rotation: correctedQuaternion.clone(),
+      position: scratchCorrectedPos.current.clone(),
+      rotation: scratchCorrectedQ.current.clone(),
       scale: pose.scale,
     })
   })

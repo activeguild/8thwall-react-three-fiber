@@ -23,9 +23,9 @@ vi.mock('../imu', () => ({
 vi.mock('three', async () => {
   const actual = await vi.importActual<typeof import('three')>('three')
   const makeCopyable = (): any => ({
-    copy: vi.fn(),
-    setScalar: vi.fn(),
-    set: vi.fn(),
+    copy: vi.fn().mockReturnThis(),
+    setScalar: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
     clone: vi.fn(() => makeCopyable()),
     invert: vi.fn().mockReturnThis(),
     multiply: vi.fn().mockReturnThis(),
@@ -87,6 +87,8 @@ describe('ImageTracker', () => {
     const makeCopyable = () => ({ copy: vi.fn(), setScalar: vi.fn() })
     const groupProto = HTMLElement.prototype as any
     const origPosition = Object.getOwnPropertyDescriptor(groupProto, 'position')
+    const origQuaternion = Object.getOwnPropertyDescriptor(groupProto, 'quaternion')
+    const origScale = Object.getOwnPropertyDescriptor(groupProto, 'scale')
     groupProto.position = makeCopyable()
     groupProto.quaternion = makeCopyable()
     groupProto.scale = makeCopyable()
@@ -101,27 +103,28 @@ describe('ImageTracker', () => {
     )
 
     // Pipeline module の reality.imagefound リスナーを直接呼ぶ
-    act(() => {
-      const listener = capturedModule?.listeners?.find((l: any) => l.event === 'reality.imagefound')
-      listener?.process({
-        name: 'reality.imagefound',
-        detail: {
-          name: 'macaw',
-          position: { x: 0, y: 0, z: -1 },
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
-          scale: 1,
-        },
+    try {
+      act(() => {
+        const listener = capturedModule?.listeners?.find((l: any) => l.event === 'reality.imagefound')
+        listener?.process({
+          name: 'reality.imagefound',
+          detail: {
+            name: 'macaw',
+            position: { x: 0, y: 0, z: -1 },
+            rotation: { x: 0, y: 0, z: 0, w: 1 },
+            scale: 1,
+          },
+        })
       })
-    })
-
-    // 後始末
-    if (origPosition) {
-      Object.defineProperty(groupProto, 'position', origPosition)
-    } else {
-      delete groupProto.position
+    } finally {
+      // 後始末
+      if (origPosition) Object.defineProperty(groupProto, 'position', origPosition)
+      else delete groupProto.position
+      if (origQuaternion) Object.defineProperty(groupProto, 'quaternion', origQuaternion)
+      else delete groupProto.quaternion
+      if (origScale) Object.defineProperty(groupProto, 'scale', origScale)
+      else delete groupProto.scale
     }
-    delete groupProto.quaternion
-    delete groupProto.scale
 
     expect(onFound).toHaveBeenCalledTimes(1)
   })
@@ -175,6 +178,8 @@ describe('ImageTracker', () => {
     const makeCopyable = (): any => ({ copy: vi.fn(), setScalar: vi.fn(), set: vi.fn(), clone: vi.fn(() => makeCopyable()) })
     const groupProto = HTMLElement.prototype as any
     const origPosition = Object.getOwnPropertyDescriptor(groupProto, 'position')
+    const origQuaternion = Object.getOwnPropertyDescriptor(groupProto, 'quaternion')
+    const origScale = Object.getOwnPropertyDescriptor(groupProto, 'scale')
     groupProto.position = makeCopyable()
     groupProto.quaternion = makeCopyable()
     groupProto.scale = makeCopyable()
@@ -186,27 +191,27 @@ describe('ImageTracker', () => {
       </XRContext.Provider>
     )
 
-    act(() => {
-      capturedModule?.listeners
-        ?.find((l: any) => l.event === 'reality.imagefound')
-        ?.process({ detail: { name: 'macaw', position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: 1.5 } })
-      capturedModule?.onUpdate?.({ processCpuResult: { reality: { detectedImages: [
-        { name: 'macaw', position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: 1.5 },
-      ] } } })
-    })
-
     // Trigger the useFrame callback
     const { __runFrame } = await import('@react-three/fiber') as any
-    act(() => { __runFrame() })
-
-    // 後始末
-    if (origPosition) {
-      Object.defineProperty(groupProto, 'position', origPosition)
-    } else {
-      delete groupProto.position
+    try {
+      act(() => {
+        capturedModule?.listeners
+          ?.find((l: any) => l.event === 'reality.imagefound')
+          ?.process({ detail: { name: 'macaw', position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: 1.5 } })
+        capturedModule?.onUpdate?.({ processCpuResult: { reality: { detectedImages: [
+          { name: 'macaw', position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: 1.5 },
+        ] } } })
+      })
+      act(() => { __runFrame() })
+    } finally {
+      // 後始末
+      if (origPosition) Object.defineProperty(groupProto, 'position', origPosition)
+      else delete groupProto.position
+      if (origQuaternion) Object.defineProperty(groupProto, 'quaternion', origQuaternion)
+      else delete groupProto.quaternion
+      if (origScale) Object.defineProperty(groupProto, 'scale', origScale)
+      else delete groupProto.scale
     }
-    delete groupProto.quaternion
-    delete groupProto.scale
 
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ scale: 1.5 }))
   })
