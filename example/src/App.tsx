@@ -58,8 +58,13 @@ export default function App() {
   const [showSensorButton, setShowSensorButton] = useState(true)
 
   async function handleSensorClick() {
-    await requestIMUPermission()
-    setShowSensorButton(false)
+    try {
+      await requestIMUPermission()
+    } catch (err) {
+      console.error('IMU permission error:', err)
+    } finally {
+      setShowSensorButton(false)
+    }
   }
 
   return (
