@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useXRContext } from '../context/XRContext'
 import { extractTargetName } from '../types'
+import { getIMUQuaternion } from '../imu'
 import type { ImageTrackerProps } from '../types'
 
 interface XRImagePose {
@@ -26,6 +27,9 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   useEffect(() => { onLostRef.current = onLost }, [onLost])
 
   const latestPoseRef = useRef<XRImagePose | null>(null)
+  // Snapshot of IMU quaternion taken at each XR8 onUpdate call.
+  // null until the first XR8 frame arrives.
+  const imuSnapshotRef = useRef<THREE.Quaternion | null>(null)
 
   useLayoutEffect(() => {
     registerTarget(targetImage)
@@ -38,6 +42,9 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
     xr8.addCameraPipelineModule({
       name: moduleName,
       onUpdate: ({ processCpuResult }: any) => {
+        // Snapshot IMU every XR8 frame (as close in time as possible to XR8 pose data)
+        imuSnapshotRef.current = getIMUQuaternion().clone()
+
         const detectedImages: XRImagePose[] | undefined = processCpuResult?.reality?.detectedImages
         if (!detectedImages) return
         const pose = detectedImages.find((img) => img.name === targetName)
@@ -70,21 +77,36 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
 
     return () => {
       latestPoseRef.current = null
+      imuSnapshotRef.current = null
       xr8.removeCameraPipelineModule(moduleName)
     }
   }, [xr8, targetName])
 
   useFrame(() => {
     const pose = latestPoseRef.current
-    if (!pose || !groupRef.current) return
+    const snapshot = imuSnapshotRef.current
+    // Skip if no XR8 frame has arrived yet, or if the marker is not detected
+    if (!pose || !snapshot || !groupRef.current) return
 
-    groupRef.current.position.set(pose.position.x, pose.position.y, pose.position.z)
-    groupRef.current.quaternion.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
+    // ΔQ = Q_current * Q_snapshot^-1  (rotation since the XR8 frame was captured)
+    const deltaQ = getIMUQuaternion().clone().multiply(snapshot.clone().invert()).normalize()
+    // Inverse delta: undo the camera movement to keep the overlay aligned to the physical marker
+    const deltaQInv = deltaQ.clone().invert()
+
+    const xr8Position = new THREE.Vector3(pose.position.x, pose.position.y, pose.position.z)
+    const xr8Quaternion = new THREE.Quaternion(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
+
+    const correctedPosition = xr8Position.clone().applyQuaternion(deltaQInv)
+    const correctedQuaternion = deltaQInv.clone().multiply(xr8Quaternion)
+
+    groupRef.current.position.copy(correctedPosition)
+    groupRef.current.quaternion.copy(correctedQuaternion)
     groupRef.current.scale.setScalar(pose.scale)
 
+    // Fire with corrected pose so consumers stay in sync with what is rendered
     onUpdatedRef.current?.({
-      position: new THREE.Vector3(pose.position.x, pose.position.y, pose.position.z),
-      rotation: new THREE.Quaternion(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w),
+      position: correctedPosition.clone(),
+      rotation: correctedQuaternion.clone(),
       scale: pose.scale,
     })
   })
