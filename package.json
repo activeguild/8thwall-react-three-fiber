@@ -1,6 +1,6 @@
 {
   "name": "@activeguild/8thwall-react-three-fiber",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React Three Fiber components for 8th Wall image tracking",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
