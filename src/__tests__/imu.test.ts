@@ -43,9 +43,11 @@ describe('imu', () => {
     } as unknown as DeviceMotionEvent)
 
     const q = getIMUQuaternion()
-    // After 180° rotation: |w| ≈ 0, |z| ≈ 1
+    // After 180° rotation: |w| ≈ 0, |z| ≈ 1, |x| ≈ 0, |y| ≈ 0
     expect(Math.abs(q.w)).toBeCloseTo(0, 1)
     expect(Math.abs(q.z)).toBeCloseTo(1, 1)
+    expect(Math.abs(q.x)).toBeCloseTo(0, 1)
+    expect(Math.abs(q.y)).toBeCloseTo(0, 1)
   })
 
   it('skips a sample when rotationRate is null', async () => {
@@ -111,6 +113,7 @@ describe('imu', () => {
   })
 
   it('requestIMUPermission returns true when iOS grants permission', async () => {
+    const originalDME = (window as any).DeviceMotionEvent
     ;(window as any).DeviceMotionEvent = class {
       static requestPermission = vi.fn().mockResolvedValue('granted')
     }
@@ -120,9 +123,11 @@ describe('imu', () => {
     const result = await requestIMUPermission()
 
     expect(result).toBe(true)
+    ;(window as any).DeviceMotionEvent = originalDME
   })
 
   it('requestIMUPermission returns false when iOS denies permission', async () => {
+    const originalDME = (window as any).DeviceMotionEvent
     ;(window as any).DeviceMotionEvent = class {
       static requestPermission = vi.fn().mockResolvedValue('denied')
     }
@@ -132,5 +137,6 @@ describe('imu', () => {
     const result = await requestIMUPermission()
 
     expect(result).toBe(false)
+    ;(window as any).DeviceMotionEvent = originalDME
   })
 })
