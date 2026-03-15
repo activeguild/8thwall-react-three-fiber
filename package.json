@@ -1,6 +1,6 @@
 {
   "name": "@j1ngzoue/8thwall-react-three-fiber",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "React Three Fiber components for 8th Wall image tracking",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
