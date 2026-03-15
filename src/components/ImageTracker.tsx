@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
 import { extractTargetName } from '../types'
@@ -14,7 +13,6 @@ interface XRImageEventDetail {
 
 export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children }: ImageTrackerProps) {
   const { registerTarget, xr8 } = useXRContext()
-  const { gl } = useThree()
   const groupRef = useRef<THREE.Group>(null)
   const [visible, setVisible] = useState(false)
   const targetName = extractTargetName(targetImage)
@@ -36,10 +34,10 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
     registerTarget(targetImage)
   }, [registerTarget, targetImage])
 
-  // Attach XR8 image events after XR8 is running
+  // Attach XR8 image events after XR8 is running.
+  // open-source xr.js dispatches events via internal framework listeners, not canvas DOM events.
   useEffect(() => {
     if (!xr8) return
-    const canvas = gl.domElement
 
     function applyPose(detail: XRImageEventDetail): ImageFoundEvent {
       _position.current.set(detail.position.x, detail.position.y, detail.position.z)
@@ -56,38 +54,42 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
       }
     }
 
-    function onImageFound(e: Event) {
-      const detail = (e as CustomEvent<XRImageEventDetail>).detail
-      if (detail.name !== targetName) return
-      setVisible(true)
-      const event = applyPose(detail)
-      onFoundRef.current?.(event)
-    }
-
-    function onImageUpdated(e: Event) {
-      const detail = (e as CustomEvent<XRImageEventDetail>).detail
-      if (detail.name !== targetName) return
-      const event = applyPose(detail)
-      onUpdatedRef.current?.(event)
-    }
-
-    function onImageLost(e: Event) {
-      const detail = (e as CustomEvent<{ name: string }>).detail
-      if (detail.name !== targetName) return
-      setVisible(false)
-      onLostRef.current?.()
-    }
-
-    canvas.addEventListener('reality.imagefound', onImageFound)
-    canvas.addEventListener('reality.imageupdated', onImageUpdated)
-    canvas.addEventListener('reality.imagelost', onImageLost)
+    const moduleName = `image-tracker-${targetName}`
+    xr8.addCameraPipelineModule({
+      name: moduleName,
+      listeners: [
+        {
+          event: 'reality.imagefound',
+          process: ({ detail }: { detail: XRImageEventDetail }) => {
+            if (detail.name !== targetName) return
+            setVisible(true)
+            const event = applyPose(detail)
+            onFoundRef.current?.(event)
+          },
+        },
+        {
+          event: 'reality.imageupdated',
+          process: ({ detail }: { detail: XRImageEventDetail }) => {
+            if (detail.name !== targetName) return
+            const event = applyPose(detail)
+            onUpdatedRef.current?.(event)
+          },
+        },
+        {
+          event: 'reality.imagelost',
+          process: ({ detail }: { detail: { name: string } }) => {
+            if (detail.name !== targetName) return
+            setVisible(false)
+            onLostRef.current?.()
+          },
+        },
+      ],
+    })
 
     return () => {
-      canvas.removeEventListener('reality.imagefound', onImageFound)
-      canvas.removeEventListener('reality.imageupdated', onImageUpdated)
-      canvas.removeEventListener('reality.imagelost', onImageLost)
+      xr8.removeCameraPipelineModule(moduleName)
     }
-  }, [xr8, gl, targetName]) // onFound/Updated/Lost を依存配列から除外
+  }, [xr8, targetName]) // onFound/Updated/Lost を依存配列から除外
 
   return (
     <group ref={groupRef} visible={visible}>

@@ -30,7 +30,8 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
 }
 
 export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: EighthwallCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
+  const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
   const targetPathsRef = useRef<string[]>([])
 
@@ -40,6 +41,18 @@ export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: Ei
     }
   }, [])
 
+  // Keep XR canvas pixel dimensions in sync with display size (devicePixelRatio対応)
+  useLayoutEffect(() => {
+    const canvas = xrCanvasRef.current
+    if (!canvas) return
+    const observer = new ResizeObserver(() => {
+      canvas.width = Math.round(canvas.clientWidth * window.devicePixelRatio)
+      canvas.height = Math.round(canvas.clientHeight * window.devicePixelRatio)
+    })
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [])
+
   useLayoutEffect(() => {
     // Children's useLayoutEffect (ImageTracker) runs before this.
     // By this point, all registerTarget calls have completed.
@@ -47,33 +60,39 @@ export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: Ei
     let injectedScript: HTMLScriptElement | null = null
 
     async function initXR() {
-      console.log('[8thwall-r3f] build v4 — initXR start')
+      console.log('[8thwall-r3f] build v5 — initXR start')
       const { script, isNew } = await loadScript(xrSrc)
+      console.log('[8thwall-r3f] loadScript resolved', { isNew, stopped, XR8: window.XR8, XrController: window.XR8?.XrController })
       if (isNew) injectedScript = script
-      if (stopped) return
+      if (stopped) { console.log('[8thwall-r3f] stopped before setup, aborting'); return }
 
       const xr8Instance = window.XR8
+      console.log('[8thwall-r3f] targets:', targetPathsRef.current)
 
       // Fetch all registered target JSON files for offline image tracking
       const imageTargetData = await Promise.all(
         targetPathsRef.current.map((path) => fetch(path).then((r) => r.json()))
       )
+      console.log('[8thwall-r3f] imageTargetData loaded, count:', imageTargetData.length)
 
       xr8Instance.XrController.configure({ imageTargetData })
+      console.log('[8thwall-r3f] XrController.configure done')
 
       xr8Instance.addCameraPipelineModules([
         xr8Instance.GlTextureRenderer.pipelineModule(),
         xr8Instance.XrController.pipelineModule(),
       ])
+      console.log('[8thwall-r3f] addCameraPipelineModules done')
 
-      const canvas = canvasRef.current
-      if (!canvas) return
+      const canvas = xrCanvasRef.current
+      console.log('[8thwall-r3f] xrCanvasRef.current:', canvas)
+      if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
 
+      console.log('[8thwall-r3f] calling XR8.run()')
       xr8Instance.run({ canvas, ...(appKey ? { appKey } : {}) })
-
-      canvas.addEventListener('xrstarted', () => {
-        if (!stopped) setXr8(xr8Instance)
-      }, { once: true })
+      // open-source xr.js has no 'xrstarted' DOM event — set context immediately after run()
+      // so ImageTracker can register pipeline module listeners via useEffect
+      if (!stopped) setXr8(xr8Instance)
     }
 
     initXR().catch((err) => {
@@ -89,23 +108,36 @@ export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: Ei
     }
   }, [appKey, xrSrc])
 
-  const defaultStyle: CSSProperties = {
+  const containerStyle: CSSProperties = {
+    position: 'relative',
     width: '100%',
     height: '100%',
     ...style,
   }
 
+  const fillStyle: CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+  }
+
   return (
     <XRContext.Provider value={{ xr8, registerTarget }}>
-      <Canvas
-        ref={canvasRef}
-        style={defaultStyle}
-        linear
-        flat
-        gl={{ antialias: false }}
-      >
-        {children}
-      </Canvas>
+      <div style={containerStyle}>
+        {/* XR8 renders camera feed to this canvas (behind) */}
+        <canvas ref={xrCanvasRef} style={fillStyle} />
+        {/* R3F renders 3D scene with transparent background on top */}
+        <Canvas
+          style={fillStyle}
+          linear
+          flat
+          gl={{ antialias: false, alpha: true }}
+        >
+          {children}
+        </Canvas>
+      </div>
     </XRContext.Provider>
   )
 }

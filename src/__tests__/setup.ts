@@ -1,6 +1,13 @@
 /// <reference types="vitest/globals" />
 import '@testing-library/react'
 
+// jsdom does not implement ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 // Mock window.XR8 global
 const mockXR8 = {
   XrController: {

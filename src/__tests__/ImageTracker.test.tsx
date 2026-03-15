@@ -1,12 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
-import { useThree } from '@react-three/fiber'
 import { XRContext } from '../context/XRContext'
 import { ImageTracker } from '../components/ImageTracker'
-
-vi.mock('@react-three/fiber', () => ({
-  useThree: vi.fn(() => ({ gl: { domElement: document.createElement('canvas') } })),
-}))
 
 vi.mock('three', async () => {
   const actual = await vi.importActual<typeof import('three')>('three')
@@ -41,13 +36,16 @@ describe('ImageTracker', () => {
     ).not.toThrow()
   })
 
-  it('shows group when xrimagefound fires for matching target', () => {
-    const canvas = document.createElement('canvas')
+  it('calls onFound when reality.imagefound fires via pipeline module listener', () => {
+    // Capture the pipeline module registered by ImageTracker
+    let capturedModule: any = null
     const fakeXr8 = {
       XrController: { configure: vi.fn(), pipelineModule: vi.fn(() => ({})) },
-      run: vi.fn(), stop: vi.fn(), addCameraPipelineModules: vi.fn(),
+      run: vi.fn(), stop: vi.fn(),
+      addCameraPipelineModules: vi.fn(),
+      addCameraPipelineModule: vi.fn((m) => { capturedModule = m }),
+      removeCameraPipelineModule: vi.fn(),
     }
-    vi.mocked(useThree).mockReturnValue({ gl: { domElement: canvas } } as any)
 
     // jsdom の <group> 要素は THREE.Group でないため、position/quaternion/scale を付与する
     const makeCopyable = () => ({ copy: vi.fn(), setScalar: vi.fn() })
@@ -66,9 +64,11 @@ describe('ImageTracker', () => {
       </XRContext.Provider>
     )
 
-    // reality.imagefound イベントを発火
+    // Pipeline module の reality.imagefound リスナーを直接呼ぶ
     act(() => {
-      const event = new CustomEvent('reality.imagefound', {
+      const listener = capturedModule?.listeners?.find((l: any) => l.event === 'reality.imagefound')
+      listener?.process({
+        name: 'reality.imagefound',
         detail: {
           name: 'macaw',
           position: { x: 0, y: 0, z: -1 },
@@ -76,7 +76,6 @@ describe('ImageTracker', () => {
           scale: 1,
         },
       })
-      canvas.dispatchEvent(event)
     })
 
     // 後始末

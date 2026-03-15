@@ -14,6 +14,7 @@ export interface XR8Instance {
   stop: () => void
   addCameraPipelineModules: (modules: unknown[]) => void
   addCameraPipelineModule: (module: unknown) => void
+  removeCameraPipelineModule: (moduleName: string) => void
 }
 
 declare global {

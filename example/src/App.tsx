@@ -12,12 +12,12 @@ export default function App() {
     >
       <EighthwallCamera />
       <ImageTracker
-        targetImage="/targets/macaw.json"
-        onFound={() => console.log('macaw found!')}
-        onLost={() => console.log('macaw lost!')}
+        targetImage="/targets/input.json"
+        onFound={() => console.log('input found!')}
+        onLost={() => console.log('input lost!')}
       >
         <mesh>
-          <sphereGeometry args={[0.1, 32, 32]} />
+          <sphereGeometry args={[0.5, 32, 32]} />
           <meshStandardMaterial color="hotpink" />
         </mesh>
       </ImageTracker>

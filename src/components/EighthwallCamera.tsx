@@ -1,20 +1,17 @@
 import { useEffect, useRef } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
 
-interface XRCameraProcessedDetail {
-  cameraProjectionMatrix: Float32Array
-  cameraTransform: {
-    position: { x: number; y: number; z: number }
-    rotation: { x: number; y: number; z: number; w: number }
-  }
+interface CameraState {
+  position: { x: number; y: number; z: number }
+  rotation: { x: number; y: number; z: number; w: number }
+  intrinsics: number[]
 }
 
 export function EighthwallCamera() {
-  const { gl } = useThree()
   const { xr8 } = useXRContext()
-  const cameraDataRef = useRef<XRCameraProcessedDetail | null>(null)
+  const cameraDataRef = useRef<CameraState | null>(null)
   // オブジェクトを事前確保して再利用（GC圧迫を防ぐ）
   const _position = useRef(new THREE.Vector3())
   const _quaternion = useRef(new THREE.Quaternion())
@@ -22,30 +19,49 @@ export function EighthwallCamera() {
   const _matrix = useRef(new THREE.Matrix4())
 
   useEffect(() => {
-    if (!xr8) return  // xr8がnullの間はリスナーを登録しない
-    const canvas = gl.domElement
-
-    function onCameraProcessed(e: Event) {
-      const detail = (e as CustomEvent<XRCameraProcessedDetail>).detail
-      cameraDataRef.current = detail
-    }
-
-    canvas.addEventListener('reality.cameraconfigured', onCameraProcessed)
+    if (!xr8) return
+    // open-source xr.js: camera pose comes from processCpuResult.reality in onUpdate,
+    // not from a canvas DOM event.
+    xr8.addCameraPipelineModule({
+      name: 'eighthwall-camera',
+      onUpdate: ({ processCpuResult }: any) => {
+        const reality = processCpuResult?.reality
+        if (!reality?.position) return
+        cameraDataRef.current = {
+          position: reality.position,
+          rotation: reality.rotation,
+          intrinsics: reality.intrinsics,
+        }
+      },
+    })
     return () => {
-      canvas.removeEventListener('reality.cameraconfigured', onCameraProcessed)
+      cameraDataRef.current = null
+      xr8.removeCameraPipelineModule('eighthwall-camera')
     }
-  }, [gl, xr8])
+  }, [xr8])
 
   useFrame(({ camera }) => {
     const data = cameraDataRef.current
     if (!data) return
 
-    camera.projectionMatrix.fromArray(data.cameraProjectionMatrix)
+    const { position: p, rotation: r, intrinsics } = data
 
-    const { position: p, rotation: r } = data.cameraTransform
+    // カメラが毎フレーム自動でmatrixを再計算しないよう無効化
+    camera.matrixAutoUpdate = false
+
+    // intrinsics[5] = fy (normalized) → vertical FOV
+    if (intrinsics?.[5] && camera instanceof THREE.PerspectiveCamera) {
+      const newFov = (2.0 * Math.atan(1.0 / intrinsics[5]) * 180.0) / Math.PI
+      if (Math.abs(camera.fov - newFov) > 0.01) {
+        camera.fov = newFov
+        camera.updateProjectionMatrix()
+      }
+    }
+
     _position.current.set(p.x, p.y, p.z)
     _quaternion.current.set(r.x, r.y, r.z, r.w)
     _matrix.current.compose(_position.current, _quaternion.current, _scale.current)
+    camera.matrixWorld.copy(_matrix.current)
     camera.matrixWorldInverse.copy(_matrix.current).invert()
   })
 

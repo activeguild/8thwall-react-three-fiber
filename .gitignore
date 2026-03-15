@@ -1,3 +1,20 @@
 node_modules/
 dist/
 *.local
+
+# 8th Wall engine files (build from https://github.com/8thwall/8thwall/tree/main/packages/engine)
+example/public/xr.js
+example/public/xr-tracking.js
+example/public/resources/
+
+# Generated image target files (create with generate-target.mjs)
+example/public/targets/
+example/input.png
+
+# generate-target.mjs contains absolute paths specific to the local machine
+example/generate-target.mjs
+
+# Local config / tooling
+.claude/
+spec.md
+docs/superpowers/
