@@ -37,7 +37,7 @@ describe('EighthwallCanvas', () => {
 
   it('renders R3F Canvas', () => {
     const { getByTestId } = render(
-      <EighthwallCanvas appKey="test-key" xrSrc="/xr.js">
+      <EighthwallCanvas xrSrc="/xr.js">
         <mesh />
       </EighthwallCanvas>
     )
@@ -46,7 +46,7 @@ describe('EighthwallCanvas', () => {
 
   it('renders children', () => {
     const { getByText } = render(
-      <EighthwallCanvas appKey="test-key" xrSrc="/xr.js">
+      <EighthwallCanvas xrSrc="/xr.js">
         <div>child-content</div>
       </EighthwallCanvas>
     )
@@ -66,7 +66,7 @@ describe('EighthwallCanvas', () => {
     })
 
     render(
-      <EighthwallCanvas appKey="my-key" xrSrc="/xr.js">
+      <EighthwallCanvas xrSrc="/xr.js">
         <div />
       </EighthwallCanvas>
     )

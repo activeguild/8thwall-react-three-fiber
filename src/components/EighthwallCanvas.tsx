@@ -29,7 +29,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, children, style, onError }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -89,7 +89,7 @@ export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: Ei
       if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
 
       console.log('[8thwall-r3f] calling XR8.run()')
-      xr8Instance.run({ canvas, ...(appKey ? { appKey } : {}) })
+      xr8Instance.run({ canvas })
       // open-source xr.js has no 'xrstarted' DOM event — set context immediately after run()
       // so ImageTracker can register pipeline module listeners via useEffect
       if (!stopped) setXr8(xr8Instance)
@@ -106,7 +106,7 @@ export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: Ei
       injectedScript?.remove()
       setXr8(null)
     }
-  }, [appKey, xrSrc])
+  }, [xrSrc])
 
   const containerStyle: CSSProperties = {
     position: 'relative',

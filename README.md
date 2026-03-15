@@ -91,7 +91,6 @@ Root component. Sets up the XR session and provides context to child components.
 | Prop | Type | Description |
 |------|------|-------------|
 | `xrSrc` | `string` | URL to `xr.js` (must be a static file, not bundled) |
-| `appKey` | `string?` | 8th Wall app key (optional for open-source engine builds) |
 | `style` | `CSSProperties?` | Style applied to the container `div` |
 | `onError` | `(err: unknown) => void` | Called when XR initialization fails |
 

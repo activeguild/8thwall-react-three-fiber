@@ -10,7 +10,7 @@ export interface XR8Instance {
   GlTextureRenderer: {
     pipelineModule: () => unknown
   }
-  run: (config: { canvas: HTMLCanvasElement; appKey?: string }) => void
+  run: (config: { canvas: HTMLCanvasElement }) => void
   stop: () => void
   addCameraPipelineModules: (modules: unknown[]) => void
   addCameraPipelineModule: (module: unknown) => void
@@ -30,8 +30,6 @@ export interface ImageFoundEvent {
 }
 
 export interface EighthwallCanvasProps {
-  /** 8th Wall app key (optional for open-source engine builds) */
-  appKey?: string
   /** URL to the xr.js engine script served from your public directory */
   xrSrc: string
   children?: React.ReactNode
