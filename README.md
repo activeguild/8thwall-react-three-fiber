@@ -18,18 +18,10 @@ npm install @react-three/fiber react react-dom three
 
 ### 1. Get the 8th Wall engine
 
-Build `xr.js` and `xr-tracking.js` from the official open-source repo:
-
-```bash
-git clone https://github.com/8thwall/8thwall.git
-cd 8thwall/packages/engine
-# follow the build instructions in that repo
-```
-
-Copy the built files to your project's public directory:
+The engine files are bundled with this package under the `8thwall/` directory:
 
 ```
-public/
+node_modules/@j1ngzoue/8thwall-react-three-fiber/8thwall/
   xr.js
   xr-tracking.js
   resources/
@@ -37,7 +29,13 @@ public/
     semantics-worker.js
 ```
 
-> `xr.js` must be served from the same origin as your app (not bundled). Serve it as a static file and pass the URL via the `xrSrc` prop.
+Copy them to your project's public directory (or any location your dev server can serve):
+
+```bash
+cp -r node_modules/@j1ngzoue/8thwall-react-three-fiber/8thwall/. public/
+```
+
+> `xr.js` must be served as a **static file** (not bundled by Vite). Pass its public URL via the `xrSrc` prop.
 
 ### 2. Generate image targets
 

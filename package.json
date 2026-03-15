@@ -6,7 +6,8 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "8thwall"
   ],
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --declarationDir dist",
