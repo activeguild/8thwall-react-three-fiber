@@ -49,6 +49,11 @@ export interface EighthwallCameraProps {
 export interface ImageTrackerProps {
   /** Path to the target JSON file, e.g. "/targets/macaw.json" */
   targetImage: string
+  /**
+   * Enable IMU (gyroscope) correction to reduce AR overlay lag.
+   * Defaults to true. Set to false to apply raw XR8 pose without correction.
+   */
+  imuCorrection?: boolean
   onFound?: (event: ImageFoundEvent) => void
   onUpdated?: (event: ImageFoundEvent) => void
   onLost?: () => void
