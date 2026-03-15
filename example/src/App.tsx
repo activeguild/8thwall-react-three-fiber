@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
 
 type ContentType = 'image' | 'cube'
 
@@ -38,8 +38,34 @@ const selectStyle: React.CSSProperties = {
   color: '#fff',
 }
 
+const sensorButtonStyle: React.CSSProperties = {
+  position: 'fixed',
+  bottom: 40,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 10,
+  padding: '12px 24px',
+  fontSize: 16,
+  borderRadius: 8,
+  border: 'none',
+  background: 'rgba(0,0,0,0.7)',
+  color: '#fff',
+  cursor: 'pointer',
+}
+
 export default function App() {
   const [content, setContent] = useState<ContentType>('image')
+  const [showSensorButton, setShowSensorButton] = useState(true)
+
+  async function handleSensorClick() {
+    try {
+      await requestIMUPermission()
+    } catch (err) {
+      console.error('IMU permission error:', err)
+    } finally {
+      setShowSensorButton(false)
+    }
+  }
 
   return (
     <>
@@ -51,6 +77,12 @@ export default function App() {
         <option value="image">マーカー画像</option>
         <option value="cube">キューブ</option>
       </select>
+
+      {showSensorButton && (
+        <button style={sensorButtonStyle} onClick={handleSensorClick}>
+          センサーを有効にする
+        </button>
+      )}
 
       <EighthwallCanvas
         xrSrc="/xr.js"
