@@ -1,11 +1,11 @@
-# @activeguild/8thwall-react-three-fiber
+# @j1ngzoue/8thwall-react-three-fiber
 
 React Three Fiber components for [8th Wall](https://www.8thwall.com/) image tracking. Uses the open-source 8th Wall engine ([packages/engine](https://github.com/8thwall/8thwall/tree/main/packages/engine)).
 
 ## Installation
 
 ```bash
-npm install @activeguild/8thwall-react-three-fiber
+npm install @j1ngzoue/8thwall-react-three-fiber
 ```
 
 **Peer dependencies:**
@@ -56,7 +56,7 @@ The `imagePath` field in the JSON must resolve relative to your page URL (e.g. `
 ## Usage
 
 ```tsx
-import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@activeguild/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@j1ngzoue/8thwall-react-three-fiber'
 
 export default function App() {
   return (

@@ -1,4 +1,4 @@
-import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@activeguild/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@j1ngzoue/8thwall-react-three-fiber'
 
 export default function App() {
   return (

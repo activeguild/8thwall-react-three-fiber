@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@activeguild/8thwall-react-three-fiber": "file:..",
+    "@j1ngzoue/8thwall-react-three-fiber": "file:..",
     "@react-three/fiber": "^8.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
