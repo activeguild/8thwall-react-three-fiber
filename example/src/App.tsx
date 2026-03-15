@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader } from 'three'
 import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@j1ngzoue/8thwall-react-three-fiber'
+
+type ContentType = 'image' | 'cube'
 
 function MarkerImage() {
   const texture = useLoader(TextureLoader, '/targets/input_thumbnail.jpeg')
@@ -12,21 +15,58 @@ function MarkerImage() {
   )
 }
 
-export default function App() {
+function MarkerCube() {
   return (
-    <EighthwallCanvas
-      xrSrc="/xr.js"
-      style={{ width: '100vw', height: '100vh' }}
-      onError={(err) => console.error('XR Error:', err)}
-    >
-      <EighthwallCamera />
-      <ImageTracker
-        targetImage="/targets/input.json"
-        onFound={(e) => console.log('input found! scale:', e.scale, 'position:', e.position)}
-        onLost={() => console.log('input lost!')}
+    <mesh>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="hotpink" />
+    </mesh>
+  )
+}
+
+const selectStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 16,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 10,
+  padding: '8px 12px',
+  fontSize: 16,
+  borderRadius: 8,
+  border: 'none',
+  background: 'rgba(0,0,0,0.6)',
+  color: '#fff',
+}
+
+export default function App() {
+  const [content, setContent] = useState<ContentType>('image')
+
+  return (
+    <>
+      <select
+        style={selectStyle}
+        value={content}
+        onChange={(e) => setContent(e.target.value as ContentType)}
       >
-        <MarkerImage />
-      </ImageTracker>
-    </EighthwallCanvas>
+        <option value="image">マーカー画像</option>
+        <option value="cube">キューブ</option>
+      </select>
+
+      <EighthwallCanvas
+        xrSrc="/xr.js"
+        style={{ width: '100vw', height: '100vh' }}
+        onError={(err) => console.error('XR Error:', err)}
+      >
+        <EighthwallCamera />
+        {content === 'cube' && <ambientLight intensity={1} />}
+        <ImageTracker
+          targetImage="/targets/input.json"
+          onFound={(e) => console.log('input found! scale:', e.scale, 'position:', e.position)}
+          onLost={() => console.log('input lost!')}
+        >
+          {content === 'image' ? <MarkerImage /> : <MarkerCube />}
+        </ImageTracker>
+      </EighthwallCanvas>
+    </>
   )
 }
