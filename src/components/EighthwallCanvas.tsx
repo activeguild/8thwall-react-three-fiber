@@ -70,19 +70,9 @@ export function EighthwallCanvas({ xrSrc, children, style, onError }: Eighthwall
       console.log('[8thwall-r3f] targets:', targetPathsRef.current)
 
       // Fetch all registered target JSON files for offline image tracking
-      const results = await Promise.allSettled(
-        targetPathsRef.current.map(async (path) => {
-          const r = await fetch(path)
-          if (!r.ok) throw new Error(`Failed to fetch target "${path}": ${r.status} ${r.statusText}`)
-          return r.json()
-        })
+      const imageTargetData = await Promise.all(
+        targetPathsRef.current.map((path) => fetch(path).then((r) => r.json()))
       )
-      const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-      if (failed.length > 0) {
-        const msgs = failed.map((r) => r.reason?.message ?? String(r.reason)).join('; ')
-        throw new Error(`Target fetch errors: ${msgs}`)
-      }
-      const imageTargetData = (results as PromiseFulfilledResult<unknown>[]).map((r) => r.value)
       console.log('[8thwall-r3f] imageTargetData loaded, count:', imageTargetData.length)
 
       xr8Instance.XrController.configure({ imageTargetData })
@@ -97,9 +87,6 @@ export function EighthwallCanvas({ xrSrc, children, style, onError }: Eighthwall
       const canvas = xrCanvasRef.current
       console.log('[8thwall-r3f] xrCanvasRef.current:', canvas)
       if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
-
-      // Guard again: cleanup may have fired during the async fetch above
-      if (stopped) { console.log('[8thwall-r3f] stopped before XR8.run(), aborting'); return }
 
       console.log('[8thwall-r3f] calling XR8.run()')
       xr8Instance.run({ canvas })
