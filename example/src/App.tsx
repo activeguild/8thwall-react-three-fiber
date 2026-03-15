@@ -1,4 +1,16 @@
+import { useLoader } from '@react-three/fiber'
+import { TextureLoader } from 'three'
 import { EighthwallCanvas, EighthwallCamera, ImageTracker } from '@j1ngzoue/8thwall-react-three-fiber'
+
+function MarkerImage() {
+  const texture = useLoader(TextureLoader, '/targets/input_thumbnail.jpeg')
+  return (
+    <mesh>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial map={texture} />
+    </mesh>
+  )
+}
 
 export default function App() {
   return (
@@ -10,15 +22,11 @@ export default function App() {
       <EighthwallCamera />
       <ImageTracker
         targetImage="/targets/input.json"
-        onFound={() => console.log('input found!')}
+        onFound={(e) => console.log('input found! scale:', e.scale, 'position:', e.position)}
         onLost={() => console.log('input lost!')}
       >
-        <mesh>
-          <sphereGeometry args={[0.5, 32, 32]} />
-          <meshStandardMaterial color="hotpink" />
-        </mesh>
+        <MarkerImage />
       </ImageTracker>
-      <directionalLight position={[1, 2, 3]} intensity={1.5} />
     </EighthwallCanvas>
   )
 }

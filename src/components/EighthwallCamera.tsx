@@ -2,16 +2,17 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
+import type { EighthwallCameraProps } from '../types'
 
 interface CameraState {
   position: { x: number; y: number; z: number }
   rotation: { x: number; y: number; z: number; w: number }
-  intrinsics: number[]
 }
 
-export function EighthwallCamera() {
+export function EighthwallCamera({ fov = 60 }: EighthwallCameraProps) {
   const { xr8 } = useXRContext()
   const cameraDataRef = useRef<CameraState | null>(null)
+  const loggedOnce = useRef(false)
   // オブジェクトを事前確保して再利用（GC圧迫を防ぐ）
   const _position = useRef(new THREE.Vector3())
   const _quaternion = useRef(new THREE.Quaternion())
@@ -20,22 +21,27 @@ export function EighthwallCamera() {
 
   useEffect(() => {
     if (!xr8) return
-    // open-source xr.js: camera pose comes from processCpuResult.reality in onUpdate,
-    // not from a canvas DOM event.
     xr8.addCameraPipelineModule({
       name: 'eighthwall-camera',
+      onStart: ({ videoWidth, videoHeight }: any) => {
+        console.log('[EighthwallCamera] video dimensions:', videoWidth, 'x', videoHeight, '— using fov:', fov)
+      },
       onUpdate: ({ processCpuResult }: any) => {
         const reality = processCpuResult?.reality
         if (!reality?.position) return
+        if (!loggedOnce.current) {
+          loggedOnce.current = true
+          console.log('[EighthwallCamera] first pose:', JSON.stringify(reality.position))
+        }
         cameraDataRef.current = {
           position: reality.position,
           rotation: reality.rotation,
-          intrinsics: reality.intrinsics,
         }
       },
     })
     return () => {
       cameraDataRef.current = null
+      loggedOnce.current = false
       xr8.removeCameraPipelineModule('eighthwall-camera')
     }
   }, [xr8])
@@ -44,18 +50,15 @@ export function EighthwallCamera() {
     const data = cameraDataRef.current
     if (!data) return
 
-    const { position: p, rotation: r, intrinsics } = data
+    const { position: p, rotation: r } = data
 
     // カメラが毎フレーム自動でmatrixを再計算しないよう無効化
     camera.matrixAutoUpdate = false
 
-    // intrinsics[5] = fy (normalized) → vertical FOV
-    if (intrinsics?.[5] && camera instanceof THREE.PerspectiveCamera) {
-      const newFov = (2.0 * Math.atan(1.0 / intrinsics[5]) * 180.0) / Math.PI
-      if (Math.abs(camera.fov - newFov) > 0.01) {
-        camera.fov = newFov
-        camera.updateProjectionMatrix()
-      }
+    // XR8 open-sourceはintrinsicsにFOVを提供しないため、fovプロップを使用
+    if (camera instanceof THREE.PerspectiveCamera && Math.abs(camera.fov - fov) > 0.01) {
+      camera.fov = fov
+      camera.updateProjectionMatrix()
     }
 
     _position.current.set(p.x, p.y, p.z)

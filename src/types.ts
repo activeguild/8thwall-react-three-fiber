@@ -38,7 +38,12 @@ export interface EighthwallCanvasProps {
 }
 
 export interface EighthwallCameraProps {
-  // reserved for future options
+  /**
+   * Camera vertical field of view in degrees.
+   * XR8 open-source does not provide camera calibration, so this must be set manually.
+   * Typical smartphone rear camera (portrait): 60–65°. Default: 60.
+   */
+  fov?: number
 }
 
 export interface ImageTrackerProps {
