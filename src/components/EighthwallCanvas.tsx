@@ -12,7 +12,8 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
         resolve({ script: existing, isNew: false })
       } else {
         // Script is still loading — wait for xr.js to set window.XR8
-        // xr.js dispatches 'xrloaded' (via setTimeout) after window.XR8 = I
+        // New xr.js sets window.XR8 AFTER preload chunks (xr-tracking.js) load,
+        // then dispatches 'xrloaded' 1ms later — so XrController is ready by then.
         window.addEventListener('xrloaded', () => resolve({ script: existing, isNew: false }), { once: true })
         existing.addEventListener('error', reject, { once: true })
       }
@@ -20,6 +21,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
     }
     const script = document.createElement('script')
     script.src = src
+    // 'slam' chunk loads xr-tracking.js which provides XrController for image tracking
     script.setAttribute('data-preload-chunks', 'slam')
     script.onload = () => resolve({ script, isNew: true })
     script.onerror = reject
@@ -30,42 +32,44 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
 export function EighthwallCanvas({ appKey, xrSrc, children, style, onError }: EighthwallCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
-  const targetNamesRef = useRef<string[]>([])
+  const targetPathsRef = useRef<string[]>([])
 
-  const registerTarget = useCallback((name: string) => {
-    if (!targetNamesRef.current.includes(name)) {
-      targetNamesRef.current = [...targetNamesRef.current, name]
+  const registerTarget = useCallback((path: string) => {
+    if (!targetPathsRef.current.includes(path)) {
+      targetPathsRef.current = [...targetPathsRef.current, path]
     }
   }, [])
 
   useLayoutEffect(() => {
     // Children's useLayoutEffect (ImageTracker) runs before this.
     // By this point, all registerTarget calls have completed.
-    // カメラ映像パススルーはXR8のパイプラインが内部で処理する。
-    // 開発者はscene.backgroundを手動で設定する必要はない。
     let stopped = false
     let injectedScript: HTMLScriptElement | null = null
 
     async function initXR() {
-      console.log('[8thwall-r3f] build v3 — initXR start')
+      console.log('[8thwall-r3f] build v4 — initXR start')
       const { script, isNew } = await loadScript(xrSrc)
-      if (isNew) injectedScript = script  // 自分が作成したものだけ保持
+      if (isNew) injectedScript = script
       if (stopped) return
 
       const xr8Instance = window.XR8
 
-      xr8Instance.XrController.configure({
-        imageTargets: targetNamesRef.current,
-      })
+      // Fetch all registered target JSON files for offline image tracking
+      const imageTargetData = await Promise.all(
+        targetPathsRef.current.map((path) => fetch(path).then((r) => r.json()))
+      )
+
+      xr8Instance.XrController.configure({ imageTargetData })
 
       xr8Instance.addCameraPipelineModules([
+        xr8Instance.GlTextureRenderer.pipelineModule(),
         xr8Instance.XrController.pipelineModule(),
       ])
 
       const canvas = canvasRef.current
       if (!canvas) return
 
-      xr8Instance.run({ canvas, appKey })
+      xr8Instance.run({ canvas, ...(appKey ? { appKey } : {}) })
 
       canvas.addEventListener('xrstarted', () => {
         if (!stopped) setXr8(xr8Instance)

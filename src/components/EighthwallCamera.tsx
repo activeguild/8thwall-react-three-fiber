@@ -30,9 +30,9 @@ export function EighthwallCamera() {
       cameraDataRef.current = detail
     }
 
-    canvas.addEventListener('xrcameraprocessed', onCameraProcessed)
+    canvas.addEventListener('reality.cameraconfigured', onCameraProcessed)
     return () => {
-      canvas.removeEventListener('xrcameraprocessed', onCameraProcessed)
+      canvas.removeEventListener('reality.cameraconfigured', onCameraProcessed)
     }
   }, [gl, xr8])
 

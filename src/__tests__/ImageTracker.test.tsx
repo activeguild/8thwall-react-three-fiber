@@ -28,7 +28,7 @@ describe('ImageTracker', () => {
         </ImageTracker>
       </XRContext.Provider>
     )
-    expect(registerTarget).toHaveBeenCalledWith('macaw')
+    expect(registerTarget).toHaveBeenCalledWith('/targets/macaw.json')
   })
 
   it('renders without crashing', () => {
@@ -66,9 +66,9 @@ describe('ImageTracker', () => {
       </XRContext.Provider>
     )
 
-    // xrimagefound イベントを発火
+    // reality.imagefound イベントを発火
     act(() => {
-      const event = new CustomEvent('xrimagefound', {
+      const event = new CustomEvent('reality.imagefound', {
         detail: {
           name: 'macaw',
           position: { x: 0, y: 0, z: -1 },

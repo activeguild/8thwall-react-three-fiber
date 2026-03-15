@@ -27,15 +27,17 @@ describe('EighthwallCanvas', () => {
     addCameraPipelineModules = vi.fn()
     window.XR8 = {
       XrController: { configure, pipelineModule: vi.fn(() => ({})) },
+      GlTextureRenderer: { pipelineModule: vi.fn(() => ({})) },
       run,
       stop: vi.fn(),
       addCameraPipelineModules,
+      addCameraPipelineModule: vi.fn(),
     } as any
   })
 
   it('renders R3F Canvas', () => {
     const { getByTestId } = render(
-      <EighthwallCanvas appKey="test-key">
+      <EighthwallCanvas appKey="test-key" xrSrc="/xr.js">
         <mesh />
       </EighthwallCanvas>
     )
@@ -44,7 +46,7 @@ describe('EighthwallCanvas', () => {
 
   it('renders children', () => {
     const { getByText } = render(
-      <EighthwallCanvas appKey="test-key">
+      <EighthwallCanvas appKey="test-key" xrSrc="/xr.js">
         <div>child-content</div>
       </EighthwallCanvas>
     )
@@ -64,7 +66,7 @@ describe('EighthwallCanvas', () => {
     })
 
     render(
-      <EighthwallCanvas appKey="my-key">
+      <EighthwallCanvas appKey="my-key" xrSrc="/xr.js">
         <div />
       </EighthwallCanvas>
     )

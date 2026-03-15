@@ -31,10 +31,10 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   const _position = useRef(new THREE.Vector3())
   const _rotation = useRef(new THREE.Quaternion())
 
-  // Register target name before EighthwallCanvas calls XR8.run()
+  // Register target JSON path before EighthwallCanvas calls XR8.run()
   useLayoutEffect(() => {
-    registerTarget(targetName)
-  }, [registerTarget, targetName])
+    registerTarget(targetImage)
+  }, [registerTarget, targetImage])
 
   // Attach XR8 image events after XR8 is running
   useEffect(() => {
@@ -78,14 +78,14 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
       onLostRef.current?.()
     }
 
-    canvas.addEventListener('xrimagefound', onImageFound)
-    canvas.addEventListener('xrimageupdated', onImageUpdated)
-    canvas.addEventListener('xrimagelost', onImageLost)
+    canvas.addEventListener('reality.imagefound', onImageFound)
+    canvas.addEventListener('reality.imageupdated', onImageUpdated)
+    canvas.addEventListener('reality.imagelost', onImageLost)
 
     return () => {
-      canvas.removeEventListener('xrimagefound', onImageFound)
-      canvas.removeEventListener('xrimageupdated', onImageUpdated)
-      canvas.removeEventListener('xrimagelost', onImageLost)
+      canvas.removeEventListener('reality.imagefound', onImageFound)
+      canvas.removeEventListener('reality.imageupdated', onImageUpdated)
+      canvas.removeEventListener('reality.imagelost', onImageLost)
     }
   }, [xr8, gl, targetName]) // onFound/Updated/Lost を依存配列から除外
 

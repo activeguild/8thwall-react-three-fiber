@@ -3,12 +3,17 @@ import type * as THREE from 'three'
 // XR8 global type (minimal surface we use)
 export interface XR8Instance {
   XrController: {
-    configure: (config: { imageTargets: string[] }) => void
+    // imageTargetData: actual JSON content of target files (offline tracking)
+    configure: (config: { imageTargetData?: unknown[]; mirroredDisplay?: boolean }) => void
     pipelineModule: () => unknown
   }
-  run: (config: { canvas: HTMLCanvasElement; appKey: string }) => void
+  GlTextureRenderer: {
+    pipelineModule: () => unknown
+  }
+  run: (config: { canvas: HTMLCanvasElement; appKey?: string }) => void
   stop: () => void
   addCameraPipelineModules: (modules: unknown[]) => void
+  addCameraPipelineModule: (module: unknown) => void
 }
 
 declare global {
@@ -24,7 +29,9 @@ export interface ImageFoundEvent {
 }
 
 export interface EighthwallCanvasProps {
-  appKey: string
+  /** 8th Wall app key (optional for open-source engine builds) */
+  appKey?: string
+  /** URL to the xr.js engine script served from your public directory */
   xrSrc: string
   children?: React.ReactNode
   style?: React.CSSProperties
@@ -36,6 +43,7 @@ export interface EighthwallCameraProps {
 }
 
 export interface ImageTrackerProps {
+  /** Path to the target JSON file, e.g. "/targets/macaw.json" */
   targetImage: string
   onFound?: (event: ImageFoundEvent) => void
   onUpdated?: (event: ImageFoundEvent) => void
@@ -45,7 +53,8 @@ export interface ImageTrackerProps {
 
 export interface XRContextValue {
   xr8: XR8Instance | null
-  registerTarget: (name: string) => void
+  /** Register a target JSON file path for tracking (e.g. "/targets/macaw.json") */
+  registerTarget: (path: string) => void
 }
 
 /**
