@@ -18,7 +18,6 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   const [visible, setVisible] = useState(false)
   const targetName = extractTargetName(targetImage)
 
-  // コールバックをrefで保持することで、毎レンダーのイベント再登録を防ぐ
   const onFoundRef = useRef(onFound)
   const onUpdatedRef = useRef(onUpdated)
   const onLostRef = useRef(onLost)
@@ -26,10 +25,8 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   useEffect(() => { onUpdatedRef.current = onUpdated }, [onUpdated])
   useEffect(() => { onLostRef.current = onLost }, [onLost])
 
-  // 最新姿勢をrefで保持し、useFrameで描画タイミングに合わせて適用（カメラとの同期）
   const latestPoseRef = useRef<XRImagePose | null>(null)
 
-  // Register target JSON path before EighthwallCanvas calls XR8.run()
   useLayoutEffect(() => {
     registerTarget(targetImage)
   }, [registerTarget, targetImage])
@@ -40,7 +37,6 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
     const moduleName = `image-tracker-${targetName}`
     xr8.addCameraPipelineModule({
       name: moduleName,
-      // onUpdate で毎フレーム最新姿勢を取得（カメラ姿勢取得と同タイミング）
       onUpdate: ({ processCpuResult }: any) => {
         const detectedImages: XRImagePose[] | undefined = processCpuResult?.reality?.detectedImages
         if (!detectedImages) return
