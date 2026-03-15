@@ -18,3 +18,4 @@ example/generate-target.mjs
 .claude/
 spec.md
 docs/superpowers/
+.worktrees/
