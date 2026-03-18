@@ -1,0 +1,23 @@
+{
+  "imagePath": "/targets/input2.png",
+  "name": "input2",
+  "type": "PLANAR",
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 400,
+    "height": 400,
+    "isRotated": false,
+    "originalWidth": 400,
+    "originalHeight": 400
+  },
+  "resources": {
+    "croppedImage": "input2.png",
+    "thumbnailImage": "input2.png",
+    "luminanceImage": "input2.png"
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": false,
+  "created": 1710738000000,
+  "updated": 1710738000000
+}

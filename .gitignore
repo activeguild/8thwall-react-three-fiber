@@ -8,7 +8,6 @@ example/public/xr-tracking.js
 example/public/resources/
 
 # Generated image target files (create with generate-target.mjs)
-example/public/targets/
 example/input.png
 
 # generate-target.mjs contains absolute paths specific to the local machine

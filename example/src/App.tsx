@@ -5,6 +5,13 @@ import { EighthwallCanvas, EighthwallCamera, ImageTracker, requestIMUPermission 
 
 type ContentType = 'image' | 'cube' | 'video'
 
+type MarkerConfig = {
+  name: string
+  targetImage: string
+  thumbnailImage: string
+  content: ContentType
+}
+
 function MarkerImage() {
   const texture = useLoader(TextureLoader, '/targets/input_thumbnail.jpeg')
   return (
@@ -56,18 +63,40 @@ function MarkerVideo() {
   )
 }
 
-const selectStyle: React.CSSProperties = {
+const controlsStyle: React.CSSProperties = {
   position: 'fixed',
   top: 16,
   left: '50%',
   transform: 'translateX(-50%)',
   zIndex: 10,
-  padding: '8px 12px',
-  fontSize: 16,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+  padding: 12,
   borderRadius: 8,
-  border: 'none',
-  background: 'rgba(0,0,0,0.6)',
+  background: 'rgba(0,0,0,0.7)',
+}
+
+const markerControlStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+}
+
+const labelStyle: React.CSSProperties = {
   color: '#fff',
+  fontSize: 14,
+  fontWeight: 'bold',
+  minWidth: 60,
+}
+
+const selectStyle: React.CSSProperties = {
+  padding: '6px 10px',
+  fontSize: 14,
+  borderRadius: 6,
+  border: 'none',
+  background: 'rgba(255,255,255,0.9)',
+  color: '#000',
 }
 
 const sensorButtonStyle: React.CSSProperties = {
@@ -86,8 +115,21 @@ const sensorButtonStyle: React.CSSProperties = {
 }
 
 export default function App() {
-  const [content, setContent] = useState<ContentType>('image')
   const [showSensorButton, setShowSensorButton] = useState(true)
+  const [markers, setMarkers] = useState<MarkerConfig[]>([
+    {
+      name: 'input',
+      targetImage: '/targets/input.json',
+      thumbnailImage: '/targets/input_thumbnail.jpeg',
+      content: 'image'
+    },
+    {
+      name: 'input2',
+      targetImage: '/targets/input2.json',
+      thumbnailImage: '/targets/input2.png',
+      content: 'cube'
+    }
+  ])
 
   async function handleSensorClick() {
     try {
@@ -99,17 +141,30 @@ export default function App() {
     }
   }
 
+  function updateMarkerContent(markerName: string, content: ContentType) {
+    setMarkers(prev =>
+      prev.map(m => m.name === markerName ? { ...m, content } : m)
+    )
+  }
+
   return (
     <>
-      <select
-        style={selectStyle}
-        value={content}
-        onChange={(e) => setContent(e.target.value as ContentType)}
-      >
-        <option value="image">マーカー画像</option>
-        <option value="cube">キューブ</option>
-        <option value="video">動画</option>
-      </select>
+      <div style={controlsStyle}>
+        {markers.map(marker => (
+          <div key={marker.name} style={markerControlStyle}>
+            <span style={labelStyle}>{marker.name}:</span>
+            <select
+              style={selectStyle}
+              value={marker.content}
+              onChange={(e) => updateMarkerContent(marker.name, e.target.value as ContentType)}
+            >
+              <option value="image">マーカー画像</option>
+              <option value="cube">キューブ</option>
+              <option value="video">動画</option>
+            </select>
+          </div>
+        ))}
+      </div>
 
       {showSensorButton && (
         <button style={sensorButtonStyle} onClick={handleSensorClick}>
@@ -119,21 +174,24 @@ export default function App() {
 
       <EighthwallCanvas
         xrSrc="/xr.js"
-        xrResolution={0.5}
         style={{ width: '100vw', height: '100vh' }}
         onError={(err) => console.error('XR Error:', err)}
       >
         <EighthwallCamera />
-        {content === 'cube' && <ambientLight intensity={1} />}
-        <ImageTracker
-          targetImage="/targets/input.json"
-          onFound={(e) => console.log('input found! scale:', e.scale, 'position:', e.position)}
-          onLost={() => console.log('input lost!')}
-        >
-          {content === 'image' && <MarkerImage />}
-          {content === 'cube' && <MarkerCube />}
-          {content === 'video' && <MarkerVideo />}
-        </ImageTracker>
+        <ambientLight intensity={1} />
+
+        {markers.map(marker => (
+          <ImageTracker
+            key={marker.name}
+            targetImage={marker.targetImage}
+            onFound={(e) => console.log(`${marker.name} found! scale:`, e.scale, 'position:', e.position)}
+            onLost={() => console.log(`${marker.name} lost!`)}
+          >
+            {marker.content === 'image' && <MarkerImage />}
+            {marker.content === 'cube' && <MarkerCube />}
+            {marker.content === 'video' && <MarkerVideo />}
+          </ImageTracker>
+        ))}
       </EighthwallCanvas>
     </>
   )
