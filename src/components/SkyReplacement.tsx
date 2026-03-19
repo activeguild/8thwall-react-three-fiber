@@ -15,7 +15,6 @@ export function SkyReplacement({
   opacity = 1.0,
 }: SkyReplacementProps) {
   const { xr8 } = useXRContext()
-  const { camera, size } = useThree()
   const meshRef = useRef<THREE.Mesh>(null)
   const materialRef = useRef<THREE.ShaderMaterial>(null)
   const skyTextureRef = useRef<THREE.Texture | THREE.VideoTexture | null>(null)
@@ -67,7 +66,7 @@ export function SkyReplacement({
       uniforms: {
         skyTexture: { value: null },
         maskTexture: { value: null },
-        opacity: { value: opacity },
+        opacity: { value: 1.0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -109,7 +108,7 @@ export function SkyReplacement({
       depthTest: false,
       depthWrite: false,
     })
-  }, [opacity])
+  }, [])
 
 
   // Update textures
@@ -129,6 +128,22 @@ export function SkyReplacement({
       material.uniforms.maskTexture.value = maskTextureRef.current
     }
   })
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Dispose mask texture
+      if (maskTextureRef.current) {
+        maskTextureRef.current.dispose()
+        maskTextureRef.current = null
+      }
+
+      // Dispose shader material
+      if (materialRef.current) {
+        materialRef.current.dispose()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!xr8) return

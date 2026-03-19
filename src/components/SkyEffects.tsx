@@ -18,21 +18,14 @@ export function SkyEffects({
 
   const wasDetectedRef = useRef(false)
   const thresholdRef = useRef(detectionThreshold)
+  useEffect(() => { thresholdRef.current = detectionThreshold }, [detectionThreshold])
 
   useEffect(() => {
-    if (!xr8) {
-      console.log('[SkyEffects] XR8 not available yet')
-      return
-    }
-
-    console.log('[SkyEffects] Registering sky effects pipeline module')
+    if (!xr8) return
 
     const moduleName = 'sky-effects-tracker'
     xr8.addCameraPipelineModule({
       name: moduleName,
-      onStart: () => {
-        console.log('[SkyEffects] Pipeline module started')
-      },
       onUpdate: (args: any) => {
         const processCpuResult = args?.processCpuResult
         const layersController = processCpuResult?.layerscontroller
@@ -55,13 +48,11 @@ export function SkyEffects({
         // Track state changes
         if (isSkyDetected && !wasDetectedRef.current) {
           // Sky was just detected
-          console.log(`[SkyEffects] Sky detected! percentage: ${(percentage * 100).toFixed(1)}%`)
           wasDetectedRef.current = true
           setIsSkyVisible(true)
           onSkyDetectedRef.current?.(skySegmentation)
         } else if (!isSkyDetected && wasDetectedRef.current) {
           // Sky was just lost
-          console.log('[SkyEffects] Sky lost')
           wasDetectedRef.current = false
           setIsSkyVisible(false)
           onSkyLostRef.current?.()
@@ -73,7 +64,6 @@ export function SkyEffects({
     })
 
     return () => {
-      console.log('[SkyEffects] Cleaning up pipeline module')
       wasDetectedRef.current = false
       setIsSkyVisible(false)
       xr8.removeCameraPipelineModule(moduleName)
