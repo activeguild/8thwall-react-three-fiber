@@ -20,6 +20,17 @@ export function SkyReplacement({
   const materialRef = useRef<THREE.ShaderMaterial>(null)
   const skyTextureRef = useRef<THREE.Texture | THREE.VideoTexture | null>(null)
   const maskTextureRef = useRef<THREE.DataTexture | null>(null)
+  const thresholdRef = useRef(detectionThreshold)
+  const opacityRef = useRef(opacity)
+
+  // Update refs when props change
+  useEffect(() => {
+    thresholdRef.current = detectionThreshold
+  }, [detectionThreshold])
+
+  useEffect(() => {
+    opacityRef.current = opacity
+  }, [opacity])
 
   // Video setup if videoSrc is provided
   useEffect(() => {
@@ -47,6 +58,7 @@ export function SkyReplacement({
   useEffect(() => {
     if (!texture || videoSrc) return
     skyTextureRef.current = texture
+    skyTextureRef.current.needsUpdate = true
   }, [texture, videoSrc])
 
   // Custom shader material
@@ -71,6 +83,11 @@ export function SkyReplacement({
         varying vec2 vUv;
 
         void main() {
+          // Only show when opacity > 0 (sky detected)
+          if (opacity < 0.01) {
+            discard;
+          }
+
           // Sample the mask texture (1.0 = sky, 0.0 = not sky)
           float mask = texture2D(maskTexture, vUv).r;
 
@@ -79,6 +96,12 @@ export function SkyReplacement({
 
           // Only show where mask indicates sky
           float alpha = mask * opacity;
+
+          // Discard fragments that are not sky
+          if (alpha < 0.01) {
+            discard;
+          }
+
           gl_FragColor = vec4(skyColor.rgb, alpha);
         }
       `,
@@ -88,53 +111,44 @@ export function SkyReplacement({
     })
   }, [opacity])
 
-  useEffect(() => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.opacity.value = opacity
-    }
-  }, [opacity])
 
-  // Update mask texture from XR8
+  // Update textures
   useFrame(() => {
-    if (!xr8 || !materialRef.current) return
+    if (!materialRef.current) return
 
     const material = materialRef.current
 
     // Update sky texture
     if (skyTextureRef.current && material.uniforms.skyTexture.value !== skyTextureRef.current) {
       material.uniforms.skyTexture.value = skyTextureRef.current
+      material.uniformsNeedUpdate = true
     }
 
-    // This would be called in a pipeline module to get mask data
-    // For now, we'll create a simple gradient mask as placeholder
-    if (!maskTextureRef.current) {
-      // Create a simple gradient mask (this will be replaced with actual segmentation data)
-      const width = 256
-      const height = 256
-      const data = new Uint8Array(width * height)
-
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          // Simple gradient: top half is sky
-          data[y * width + x] = y < height / 2 ? 255 : 0
-        }
-      }
-
-      const dataTexture = new THREE.DataTexture(data, width, height, THREE.RedFormat)
-      dataTexture.needsUpdate = true
-      maskTextureRef.current = dataTexture
-      material.uniforms.maskTexture.value = dataTexture
+    // Update mask texture from pipeline module data
+    if (maskTextureRef.current && material.uniforms.maskTexture.value !== maskTextureRef.current) {
+      material.uniforms.maskTexture.value = maskTextureRef.current
     }
   })
 
   useEffect(() => {
     if (!xr8) return
 
-    console.log('[SkyReplacement] Registering pipeline module')
-
     const moduleName = 'sky-replacement'
+    let glCtx: WebGLRenderingContext | WebGL2RenderingContext | null = null
+    let framebuffer: WebGLFramebuffer | null = null
+
     xr8.addCameraPipelineModule({
       name: moduleName,
+      onStart: (args: any) => {
+        // Get WebGL context from XR8
+        const canvas = args?.canvas
+        if (canvas) {
+          glCtx = canvas.getContext('webgl2') || canvas.getContext('webgl')
+          if (glCtx) {
+            framebuffer = glCtx.createFramebuffer()
+          }
+        }
+      },
       onUpdate: (args: any) => {
         const processCpuResult = args?.processCpuResult
         const layersController = processCpuResult?.layerscontroller
@@ -143,7 +157,8 @@ export function SkyReplacement({
         if (!skyLayer || !materialRef.current) return
 
         const percentage = skyLayer.percentage
-        if (percentage === undefined || percentage < detectionThreshold) {
+
+        if (percentage === undefined || percentage < thresholdRef.current) {
           // Hide replacement when sky not detected
           if (materialRef.current.uniforms.opacity.value !== 0) {
             materialRef.current.uniforms.opacity.value = 0
@@ -152,29 +167,100 @@ export function SkyReplacement({
         }
 
         // Show replacement when sky is detected
-        if (materialRef.current.uniforms.opacity.value !== opacity) {
-          materialRef.current.uniforms.opacity.value = opacity
+        if (materialRef.current.uniforms.opacity.value !== opacityRef.current) {
+          materialRef.current.uniforms.opacity.value = opacityRef.current
         }
 
         // Update mask texture from sky layer
-        if (skyLayer.texture && skyLayer.textureWidth && skyLayer.textureHeight) {
-          // TODO: Convert WebGL texture to THREE.DataTexture
-          // This requires reading pixel data from the WebGL texture
-          console.log('[SkyReplacement] Sky mask available:', skyLayer.textureWidth, 'x', skyLayer.textureHeight)
+        if (skyLayer.texture && skyLayer.textureWidth && skyLayer.textureHeight && glCtx && framebuffer) {
+          try {
+            const width = skyLayer.textureWidth
+            const height = skyLayer.textureHeight
+            const webglTexture = skyLayer.texture
+
+            // Method 1: Try to wrap WebGL texture directly (may not work across contexts)
+            // Method 2: Use readPixels to copy data (more reliable but slower)
+
+            // Save current framebuffer
+            const prevFramebuffer = glCtx.getParameter(glCtx.FRAMEBUFFER_BINDING)
+
+            // Bind our framebuffer and attach the texture
+            glCtx.bindFramebuffer(glCtx.FRAMEBUFFER, framebuffer)
+            glCtx.framebufferTexture2D(
+              glCtx.FRAMEBUFFER,
+              glCtx.COLOR_ATTACHMENT0,
+              glCtx.TEXTURE_2D,
+              webglTexture,
+              0
+            )
+
+            // Check if framebuffer is complete
+            const status = glCtx.checkFramebufferStatus(glCtx.FRAMEBUFFER)
+            if (status === glCtx.FRAMEBUFFER_COMPLETE) {
+              // Read pixel data
+              const pixels = new Uint8Array(width * height * 4) // RGBA
+              glCtx.readPixels(0, 0, width, height, glCtx.RGBA, glCtx.UNSIGNED_BYTE, pixels)
+
+              // Convert to grayscale data for RED format
+              const grayData = new Uint8ClampedArray(width * height)
+              for (let i = 0; i < width * height; i++) {
+                grayData[i] = pixels[i * 4] // Use red channel (mask is grayscale)
+              }
+
+              // Create or update DataTexture
+              if (!maskTextureRef.current) {
+                const dataTexture = new THREE.DataTexture(grayData, width, height, THREE.RedFormat)
+                dataTexture.minFilter = THREE.LinearFilter
+                dataTexture.magFilter = THREE.LinearFilter
+                dataTexture.needsUpdate = true
+                maskTextureRef.current = dataTexture
+              } else {
+                // Update existing texture
+                const dataTexture = maskTextureRef.current as THREE.DataTexture
+                if (dataTexture.image.width !== width || dataTexture.image.height !== height) {
+                  // Recreate if size changed
+                  dataTexture.image = { data: grayData, width, height }
+                  dataTexture.needsUpdate = true
+                } else {
+                  // Just update data
+                  dataTexture.image.data.set(grayData)
+                  dataTexture.needsUpdate = true
+                }
+              }
+            }
+
+            // Restore previous framebuffer
+            glCtx.bindFramebuffer(glCtx.FRAMEBUFFER, prevFramebuffer)
+          } catch (err) {
+            console.error('[SkyReplacement] Error reading WebGL texture:', err)
+          }
         }
       },
     })
 
     return () => {
-      console.log('[SkyReplacement] Cleaning up pipeline module')
-      xr8.removeCameraPipelineModule(moduleName)
+      if (glCtx && framebuffer) {
+        glCtx.deleteFramebuffer(framebuffer)
+      }
+      if (xr8) {
+        xr8.removeCameraPipelineModule(moduleName)
+      }
     }
-  }, [xr8, detectionThreshold, opacity])
+  }, [xr8])
+
 
   return (
-    <mesh ref={meshRef}>
+    <mesh ref={meshRef} position={[0, 0, -1]} renderOrder={999}>
       <planeGeometry args={[2, 2]} />
-      <shaderMaterial ref={materialRef} attach="material" {...shaderMaterial} />
+      <shaderMaterial
+        ref={materialRef}
+        attach="material"
+        {...shaderMaterial}
+        transparent={true}
+        depthTest={false}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   )
 }

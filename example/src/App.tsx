@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
 import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
 import type { SkySegmentation } from '@j1ngzoue/8thwall-react-three-fiber'
+import { generateSkyTexture, type SkyType } from './generateSkyTexture'
 
 type ContentType = 'image' | 'cube' | 'video'
 
@@ -164,6 +165,7 @@ export default function App() {
   const [showSensorButton, setShowSensorButton] = useState(true)
   const [enableSkyEffects, setEnableSkyEffects] = useState(false)
   const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
+  const [skyType, setSkyType] = useState<SkyType>('blue')
   const [skyDetected, setSkyDetected] = useState(false)
   const [markers, setMarkers] = useState<MarkerConfig[]>([
     {
@@ -208,6 +210,11 @@ export default function App() {
     console.log('空が失われました')
   }
 
+  // Generate sky texture
+  const skyTexture = useMemo(() => {
+    return generateSkyTexture(skyType, 1024)
+  }, [skyType])
+
   return (
     <>
       <div style={controlsStyle}>
@@ -245,6 +252,22 @@ export default function App() {
           />
           <span style={labelStyle}>Sky Replacement</span>
         </label>
+
+        {/* Sky Type選択 */}
+        {enableSkyReplacement && (
+          <div style={markerControlStyle}>
+            <span style={labelStyle}>Sky Type:</span>
+            <select
+              style={selectStyle}
+              value={skyType}
+              onChange={(e) => setSkyType(e.target.value as SkyType)}
+            >
+              <option value="blue">青空 (Blue Sky)</option>
+              <option value="sunset">夕焼け (Sunset)</option>
+              <option value="night">夜空 (Night Sky)</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Sky 検出ステータス */}
@@ -297,7 +320,7 @@ export default function App() {
         {/* Sky Replacement */}
         {enableSkyReplacement && (
           <SkyReplacement
-            videoSrc="/input_video.mp4"
+            texture={skyTexture}
             detectionThreshold={0.8}
             opacity={1.0}
           />

@@ -124,6 +124,54 @@ interface ImageFoundEvent {
 }
 ```
 
+### `<SkyEffects>`
+
+Detects sky in the camera feed and shows children when sky is detected. Requires `enableSkyEffects={true}` on `<EighthwallCanvas>`.
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `detectionThreshold` | `number?` | Detection threshold (0.0 - 1.0). Default: 0.8 |
+| `onSkyDetected` | `(segmentation: SkySegmentation) => void` | Called when sky is detected |
+| `onSkyLost` | `() => void` | Called when sky is lost |
+| `children` | `ReactNode?` | 3D content to show when sky is detected |
+
+```tsx
+<EighthwallCanvas xrSrc="/xr.js" enableSkyEffects={true}>
+  <EighthwallCamera />
+  <SkyEffects
+    detectionThreshold={0.8}
+    onSkyDetected={(seg) => console.log('Sky detected!', seg)}
+  >
+    <mesh position={[0, 2, -3]}>
+      <sphereGeometry args={[0.5, 32, 32]} />
+      <meshStandardMaterial color="#00ffff" />
+    </mesh>
+  </SkyEffects>
+</EighthwallCanvas>
+```
+
+### `<SkyReplacement>`
+
+Replaces the detected sky area with a custom texture or video. Requires `enableSkyEffects={true}` on `<EighthwallCanvas>`.
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `texture` | `THREE.Texture?` | Image texture to replace the sky |
+| `videoSrc` | `string?` | Video source URL to replace the sky |
+| `detectionThreshold` | `number?` | Detection threshold (0.0 - 1.0). Default: 0.8 |
+| `opacity` | `number?` | Opacity of the replacement (0.0 - 1.0). Default: 1.0 |
+
+```tsx
+<EighthwallCanvas xrSrc="/xr.js" enableSkyEffects={true}>
+  <EighthwallCamera />
+  <SkyReplacement
+    videoSrc="/sky-video.mp4"
+    detectionThreshold={0.8}
+    opacity={1.0}
+  />
+</EighthwallCanvas>
+```
+
 ## How it works
 
 - `EighthwallCanvas` loads `xr.js` as an external script (via `<script>` tag, not bundled by Vite)
