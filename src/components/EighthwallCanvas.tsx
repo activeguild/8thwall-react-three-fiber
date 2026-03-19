@@ -29,7 +29,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, children, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, style, onError }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -67,6 +67,7 @@ export function EighthwallCanvas({ xrSrc, children, style, onError }: Eighthwall
       if (stopped) { console.log('[8thwall-r3f] stopped before setup, aborting'); return }
 
       const xr8Instance = window.XR8
+      console.log('[8thwall-r3f] XR8 initialized')
       console.log('[8thwall-r3f] targets:', targetPathsRef.current)
 
       // Fetch all registered target JSON files for offline image tracking
@@ -78,10 +79,42 @@ export function EighthwallCanvas({ xrSrc, children, style, onError }: Eighthwall
       xr8Instance.XrController.configure({ imageTargetData })
       console.log('[8thwall-r3f] XrController.configure done')
 
-      xr8Instance.addCameraPipelineModules([
+      const pipelineModules = [
         xr8Instance.GlTextureRenderer.pipelineModule(),
         xr8Instance.XrController.pipelineModule(),
-      ])
+      ]
+
+      if (enableSkyEffects) {
+        console.log('[8thwall-r3f] Enabling Sky Effects')
+
+        // Add LayersController if available
+        if (xr8Instance.LayersController) {
+          console.log('[8thwall-r3f] Adding LayersController module')
+          pipelineModules.push(xr8Instance.LayersController.pipelineModule())
+
+          // Configure sky layer
+          xr8Instance.LayersController.configure({
+            layers: {
+              sky: {
+                invertLayerMask: false
+              }
+            }
+          })
+          console.log('[8thwall-r3f] LayersController configured with sky layer')
+        } else {
+          console.warn('[8thwall-r3f] LayersController not available in XR8')
+        }
+
+        // Add SkyEffects module if available
+        if (xr8Instance.SkyEffects) {
+          console.log('[8thwall-r3f] Adding SkyEffects module')
+          pipelineModules.push(xr8Instance.SkyEffects.pipelineModule())
+        } else {
+          console.warn('[8thwall-r3f] SkyEffects not available in XR8')
+        }
+      }
+
+      xr8Instance.addCameraPipelineModules(pipelineModules)
       console.log('[8thwall-r3f] addCameraPipelineModules done')
 
       const canvas = xrCanvasRef.current
@@ -106,7 +139,7 @@ export function EighthwallCanvas({ xrSrc, children, style, onError }: Eighthwall
       injectedScript?.remove()
       setXr8(null)
     }
-  }, [xrSrc])
+  }, [xrSrc, enableSkyEffects])
 
   const containerStyle: CSSProperties = {
     position: 'relative',

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
+import type { SkySegmentation } from '@j1ngzoue/8thwall-react-three-fiber'
 
 type ContentType = 'image' | 'cube' | 'video'
 
@@ -63,6 +64,32 @@ function MarkerVideo() {
   )
 }
 
+function SkyObject() {
+  return (
+    <group position={[0, 2, -3]}>
+      {/* 空に浮かぶ球体 */}
+      <mesh>
+        <sphereGeometry args={[0.5, 32, 32]} />
+        <meshStandardMaterial
+          color="#00ffff"
+          emissive="#00ffff"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+
+      {/* 周りを回るリング */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.8, 0.1, 16, 32]} />
+        <meshStandardMaterial
+          color="#ff00ff"
+          emissive="#ff00ff"
+          emissiveIntensity={0.3}
+        />
+      </mesh>
+    </group>
+  )
+}
+
 const controlsStyle: React.CSSProperties = {
   position: 'fixed',
   top: 16,
@@ -114,8 +141,30 @@ const sensorButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
 }
 
+const checkboxStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  cursor: 'pointer',
+}
+
+const statusStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 16,
+  right: 16,
+  zIndex: 10,
+  padding: 12,
+  borderRadius: 8,
+  background: 'rgba(0,0,0,0.7)',
+  color: '#fff',
+  fontSize: 14,
+}
+
 export default function App() {
   const [showSensorButton, setShowSensorButton] = useState(true)
+  const [enableSkyEffects, setEnableSkyEffects] = useState(false)
+  const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
+  const [skyDetected, setSkyDetected] = useState(false)
   const [markers, setMarkers] = useState<MarkerConfig[]>([
     {
       name: 'input',
@@ -147,6 +196,18 @@ export default function App() {
     )
   }
 
+  function handleSkyDetected(segmentation: SkySegmentation) {
+    if (!skyDetected) {
+      setSkyDetected(true)
+      console.log('空が検出されました:', segmentation)
+    }
+  }
+
+  function handleSkyLost() {
+    setSkyDetected(false)
+    console.log('空が失われました')
+  }
+
   return (
     <>
       <div style={controlsStyle}>
@@ -164,7 +225,34 @@ export default function App() {
             </select>
           </div>
         ))}
+
+        {/* Sky Effects トグル */}
+        <label style={checkboxStyle}>
+          <input
+            type="checkbox"
+            checked={enableSkyEffects}
+            onChange={(e) => setEnableSkyEffects(e.target.checked)}
+          />
+          <span style={labelStyle}>Sky Effects</span>
+        </label>
+
+        {/* Sky Replacement トグル */}
+        <label style={checkboxStyle}>
+          <input
+            type="checkbox"
+            checked={enableSkyReplacement}
+            onChange={(e) => setEnableSkyReplacement(e.target.checked)}
+          />
+          <span style={labelStyle}>Sky Replacement</span>
+        </label>
       </div>
+
+      {/* Sky 検出ステータス */}
+      {enableSkyEffects && (
+        <div style={statusStyle}>
+          <div>空の検出: {skyDetected ? '✓ 検出中' : '× 未検出'}</div>
+        </div>
+      )}
 
       {showSensorButton && (
         <button style={sensorButtonStyle} onClick={handleSensorClick}>
@@ -174,11 +262,13 @@ export default function App() {
 
       <EighthwallCanvas
         xrSrc="/xr.js"
+        enableSkyEffects={enableSkyEffects || enableSkyReplacement}
         style={{ width: '100vw', height: '100vh' }}
         onError={(err) => console.error('XR Error:', err)}
       >
         <EighthwallCamera />
         <ambientLight intensity={1} />
+        <directionalLight position={[5, 5, 5]} />
 
         {markers.map(marker => (
           <ImageTracker
@@ -192,6 +282,26 @@ export default function App() {
             {marker.content === 'video' && <MarkerVideo />}
           </ImageTracker>
         ))}
+
+        {/* Sky Effects */}
+        {enableSkyEffects && (
+          <SkyEffects
+            detectionThreshold={0.8}  // 0.0 - 1.0 (default: 0.8)
+            onSkyDetected={handleSkyDetected}
+            onSkyLost={handleSkyLost}
+          >
+            <SkyObject />
+          </SkyEffects>
+        )}
+
+        {/* Sky Replacement */}
+        {enableSkyReplacement && (
+          <SkyReplacement
+            videoSrc="/input_video.mp4"
+            detectionThreshold={0.8}
+            opacity={1.0}
+          />
+        )}
       </EighthwallCanvas>
     </>
   )

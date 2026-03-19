@@ -10,6 +10,18 @@ export interface XR8Instance {
   GlTextureRenderer: {
     pipelineModule: () => unknown
   }
+  SkyEffects?: {
+    pipelineModule: () => unknown
+  }
+  LayersController?: {
+    pipelineModule: () => unknown
+    configure: (config: { layers: { sky: { invertLayerMask: boolean } } }) => void
+  }
+  Threejs?: {
+    pipelineModule: () => unknown
+    configure: (config: { layerScenes?: string[] }) => void
+    xrScene: () => any
+  }
   run: (config: { canvas: HTMLCanvasElement }) => void
   stop: () => void
   addCameraPipelineModules: (modules: unknown[]) => void
@@ -32,6 +44,8 @@ export interface ImageFoundEvent {
 export interface EighthwallCanvasProps {
   /** URL to the xr.js engine script served from your public directory */
   xrSrc: string
+  /** Enable Sky Effects module for sky segmentation */
+  enableSkyEffects?: boolean
   children?: React.ReactNode
   style?: React.CSSProperties
   onError?: (err: unknown) => void
@@ -58,6 +72,48 @@ export interface ImageTrackerProps {
   onUpdated?: (event: ImageFoundEvent) => void
   onLost?: () => void
   children?: React.ReactNode
+}
+
+export interface SkySegmentation {
+  /** Whether sky is detected in the current frame */
+  isSkyDetected: boolean
+  /** Segmentation mask data (optional, for advanced use) */
+  mask?: ImageData
+}
+
+export interface SkyEffectsProps {
+  /**
+   * Detection threshold (0.0 - 1.0)
+   * Sky is considered detected when percentage exceeds this value.
+   * Default: 0.8 (80%)
+   * - 0.1 = Very sensitive (detects small amounts of sky)
+   * - 0.5 = Moderate (half the screen must be sky)
+   * - 0.8 = Strict (most of screen must be sky)
+   */
+  detectionThreshold?: number
+  /** Callback when sky is detected */
+  onSkyDetected?: (segmentation: SkySegmentation) => void
+  /** Callback when sky is lost */
+  onSkyLost?: () => void
+  children?: React.ReactNode
+}
+
+export interface SkyReplacementProps {
+  /** Image texture to replace the sky */
+  texture?: THREE.Texture
+  /** Video source URL to replace the sky */
+  videoSrc?: string
+  /**
+   * Detection threshold (0.0 - 1.0)
+   * Sky replacement is shown when percentage exceeds this value.
+   * Default: 0.8 (80%)
+   */
+  detectionThreshold?: number
+  /**
+   * Opacity of the sky replacement (0.0 - 1.0)
+   * Default: 1.0 (fully opaque)
+   */
+  opacity?: number
 }
 
 export interface XRContextValue {
