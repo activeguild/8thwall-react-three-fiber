@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
-import type { SkySegmentation } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, FaceTracker, FaceAttachment, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
+import type { SkySegmentation, FaceFoundEvent } from '@j1ngzoue/8thwall-react-three-fiber'
 import { generateSkyTexture, type SkyType } from './generateSkyTexture'
 
 type ContentType = 'image' | 'cube' | 'video'
@@ -91,6 +91,30 @@ function SkyObject() {
   )
 }
 
+function Glasses() {
+  return (
+    <group>
+      {/* 左レンズ */}
+      <mesh position={[-0.03, 0, 0]}>
+        <boxGeometry args={[0.04, 0.03, 0.01]} />
+        <meshStandardMaterial color="#333" transparent opacity={0.3} />
+      </mesh>
+
+      {/* 右レンズ */}
+      <mesh position={[0.03, 0, 0]}>
+        <boxGeometry args={[0.04, 0.03, 0.01]} />
+        <meshStandardMaterial color="#333" transparent opacity={0.3} />
+      </mesh>
+
+      {/* ブリッジ */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.01, 0.005, 0.01]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
+    </group>
+  )
+}
+
 const controlsStyle: React.CSSProperties = {
   position: 'fixed',
   top: 16,
@@ -165,8 +189,10 @@ export default function App() {
   const [showSensorButton, setShowSensorButton] = useState(true)
   const [enableSkyEffects, setEnableSkyEffects] = useState(false)
   const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
+  const [enableFaceTracking, setEnableFaceTracking] = useState(false)
   const [skyType, setSkyType] = useState<SkyType>('blue')
   const [skyDetected, setSkyDetected] = useState(false)
+  const [faceDetected, setFaceDetected] = useState(false)
   const [markers, setMarkers] = useState<MarkerConfig[]>([
     {
       name: 'input',
@@ -208,6 +234,16 @@ export default function App() {
   function handleSkyLost() {
     setSkyDetected(false)
     console.log('空が失われました')
+  }
+
+  function handleFaceFound(event: FaceFoundEvent) {
+    setFaceDetected(true)
+    console.log('顔が検出されました:', event)
+  }
+
+  function handleFaceLost() {
+    setFaceDetected(false)
+    console.log('顔が失われました')
   }
 
   // Generate sky texture
@@ -268,12 +304,23 @@ export default function App() {
             </select>
           </div>
         )}
+
+        {/* Face Tracking トグル */}
+        <label style={checkboxStyle}>
+          <input
+            type="checkbox"
+            checked={enableFaceTracking}
+            onChange={(e) => setEnableFaceTracking(e.target.checked)}
+          />
+          <span style={labelStyle}>Face Tracking</span>
+        </label>
       </div>
 
       {/* Sky 検出ステータス */}
-      {enableSkyEffects && (
+      {(enableSkyEffects || enableFaceTracking) && (
         <div style={statusStyle}>
-          <div>空の検出: {skyDetected ? '✓ 検出中' : '× 未検出'}</div>
+          {enableSkyEffects && <div>空の検出: {skyDetected ? '✓ 検出中' : '× 未検出'}</div>}
+          {enableFaceTracking && <div>顔の検出: {faceDetected ? '✓ 検出中' : '× 未検出'}</div>}
         </div>
       )}
 
@@ -286,6 +333,7 @@ export default function App() {
       <EighthwallCanvas
         xrSrc="/xr.js"
         enableSkyEffects={enableSkyEffects || enableSkyReplacement}
+        enableFaceTracking={enableFaceTracking}
         style={{ width: '100vw', height: '100vh' }}
         onError={(err) => console.error('XR Error:', err)}
       >
@@ -324,6 +372,19 @@ export default function App() {
             detectionThreshold={0.8}
             opacity={1.0}
           />
+        )}
+
+        {/* Face Tracking */}
+        {enableFaceTracking && (
+          <FaceTracker
+            onFaceFound={handleFaceFound}
+            onFaceLost={handleFaceLost}
+          >
+            {/* 鼻にサングラスを配置 */}
+            <FaceAttachment point="noseBridge" offset={[0, 0.02, 0]}>
+              <Glasses />
+            </FaceAttachment>
+          </FaceTracker>
         )}
       </EighthwallCanvas>
     </>

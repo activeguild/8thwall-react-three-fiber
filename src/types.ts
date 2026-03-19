@@ -22,6 +22,10 @@ export interface XR8Instance {
     configure: (config: { layerScenes?: string[] }) => void
     xrScene: () => any
   }
+  FaceController?: {
+    configure: (config: { maxDetections?: number }) => void
+    pipelineModule: () => unknown
+  }
   run: (config: { canvas: HTMLCanvasElement }) => void
   stop: () => void
   addCameraPipelineModules: (modules: unknown[]) => void
@@ -46,6 +50,8 @@ export interface EighthwallCanvasProps {
   xrSrc: string
   /** Enable Sky Effects module for sky segmentation */
   enableSkyEffects?: boolean
+  /** Enable Face Tracking module for face detection and tracking */
+  enableFaceTracking?: boolean
   children?: React.ReactNode
   style?: React.CSSProperties
   onError?: (err: unknown) => void
@@ -114,6 +120,52 @@ export interface SkyReplacementProps {
    * Default: 1.0 (fully opaque)
    */
   opacity?: number
+}
+
+export type AttachmentPointName =
+  | 'noseBridge'
+  | 'forehead'
+  | 'leftEye'
+  | 'rightEye'
+  | 'mouth'
+
+export interface FaceFoundEvent {
+  id: number
+  transform: {
+    position: THREE.Vector3
+    rotation: THREE.Quaternion
+    scale: THREE.Vector3
+  }
+  attachmentPoints?: Record<AttachmentPointName, { position: THREE.Vector3 }>
+}
+
+export interface FaceTrackerProps {
+  /** Face ID to track (default: 0 for first detected face) */
+  faceId?: number
+  /** Called when face is first detected */
+  onFaceFound?: (event: FaceFoundEvent) => void
+  /** Called each frame the face is tracked */
+  onFaceUpdated?: (event: FaceFoundEvent) => void
+  /** Called when face tracking is lost */
+  onFaceLost?: () => void
+  children?: React.ReactNode
+}
+
+export interface FaceAttachmentProps {
+  /** Attachment point name */
+  point: AttachmentPointName
+  /** Position offset from attachment point */
+  offset?: [number, number, number]
+  children?: React.ReactNode
+}
+
+export interface FaceMeshProps {
+  /** Texture to apply to face mesh */
+  texture?: THREE.Texture
+  /** Alpha map for transparency (e.g., to hide eyes/mouth) */
+  alphaMap?: THREE.Texture
+  /** Material properties */
+  materialProps?: Partial<THREE.MeshStandardMaterialParameters>
 }
 
 export interface XRContextValue {
