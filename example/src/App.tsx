@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, useXRContext } from '@j1ngzoue/8thwall-react-three-fiber'
 import type { SkySegmentation } from '@j1ngzoue/8thwall-react-three-fiber'
 import { generateSkyTexture, type SkyType } from './generateSkyTexture'
 
@@ -146,7 +146,46 @@ const statusStyle: React.CSSProperties = {
   fontSize: 14,
 }
 
+function CameraStartButton() {
+  const { startCamera } = useXRContext()
+  const [isStarting, setIsStarting] = useState(false)
+
+  async function handleStartCamera() {
+    setIsStarting(true)
+    const success = await startCamera()
+    if (!success) {
+      alert('カメラの起動に失敗しました')
+    }
+    setIsStarting(false)
+  }
+
+  return (
+    <button
+      style={{
+        position: 'fixed',
+        bottom: 40,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 10,
+        padding: '12px 24px',
+        fontSize: 16,
+        borderRadius: 8,
+        border: 'none',
+        background: 'rgba(0,0,0,0.7)',
+        color: '#fff',
+        cursor: isStarting ? 'not-allowed' : 'pointer',
+        opacity: isStarting ? 0.5 : 1,
+      }}
+      onClick={handleStartCamera}
+      disabled={isStarting}
+    >
+      {isStarting ? 'カメラを起動中...' : 'カメラを起動する'}
+    </button>
+  )
+}
+
 export default function App() {
+  const [autoStart, setAutoStart] = useState(true)
   const [enableSkyEffects, setEnableSkyEffects] = useState(false)
   const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
   const [skyType, setSkyType] = useState<SkyType>('blue')
@@ -242,6 +281,16 @@ export default function App() {
             </select>
           </div>
         )}
+
+        {/* Auto Start トグル */}
+        <label style={checkboxStyle}>
+          <input
+            type="checkbox"
+            checked={autoStart}
+            onChange={(e) => setAutoStart(e.target.checked)}
+          />
+          <span style={labelStyle}>Auto Start Camera</span>
+        </label>
       </div>
 
       {/* Sky 検出ステータス */}
@@ -254,9 +303,11 @@ export default function App() {
       <EighthwallCanvas
         xrSrc="/xr.js"
         enableSkyEffects={enableSkyEffects || enableSkyReplacement}
+        autoStart={autoStart}
         style={{ width: '100vw', height: '100vh' }}
         onError={(err) => console.error('XR Error:', err)}
       >
+        {!autoStart && <CameraStartButton />}
         <EighthwallCamera />
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />

@@ -29,11 +29,13 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, children, style, onError }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
   const targetPathsRef = useRef<string[]>([])
+  const [isReady, setIsReady] = useState(false) // XR8 initialized but not started
+  const [isStarted, setIsStarted] = useState(false) // Camera started
 
   const registerTarget = useCallback((path: string) => {
     if (!targetPathsRef.current.includes(path)) {
@@ -52,6 +54,35 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, st
     observer.observe(canvas)
     return () => observer.disconnect()
   }, [])
+
+  // Start camera manually (only when autoStart=false)
+  const startCamera = useCallback(async (): Promise<boolean> => {
+    if (isStarted) {
+      console.warn('[8thwall-r3f] Camera already started')
+      return true
+    }
+    if (!isReady || !xr8) {
+      console.warn('[8thwall-r3f] XR8 not ready yet')
+      return false
+    }
+
+    const canvas = xrCanvasRef.current
+    if (!canvas) {
+      console.warn('[8thwall-r3f] Canvas not available')
+      return false
+    }
+
+    try {
+      console.log('[8thwall-r3f] Starting camera...')
+      xr8.run({ canvas })
+      setIsStarted(true)
+      return true
+    } catch (err) {
+      console.error('[8thwall-r3f] Failed to start camera:', err)
+      onError?.(err)
+      return false
+    }
+  }, [isReady, isStarted, xr8, onError])
 
   useLayoutEffect(() => {
     // Children's useLayoutEffect (ImageTracker) runs before this.
@@ -117,15 +148,23 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, st
       xr8Instance.addCameraPipelineModules(pipelineModules)
       console.log('[8thwall-r3f] addCameraPipelineModules done')
 
-      const canvas = xrCanvasRef.current
-      console.log('[8thwall-r3f] xrCanvasRef.current:', canvas)
-      if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
+      if (!stopped) {
+        setXr8(xr8Instance)
+        setIsReady(true)
+      }
 
-      console.log('[8thwall-r3f] calling XR8.run()')
-      xr8Instance.run({ canvas })
-      // open-source xr.js has no 'xrstarted' DOM event — set context immediately after run()
-      // so ImageTracker can register pipeline module listeners via useEffect
-      if (!stopped) setXr8(xr8Instance)
+      // Auto-start camera if enabled
+      if (autoStart && !stopped) {
+        const canvas = xrCanvasRef.current
+        console.log('[8thwall-r3f] xrCanvasRef.current:', canvas)
+        if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
+
+        console.log('[8thwall-r3f] Auto-starting camera (autoStart=true)')
+        xr8Instance.run({ canvas })
+        setIsStarted(true)
+      } else {
+        console.log('[8thwall-r3f] Camera not started (autoStart=false), call startCamera() to start')
+      }
     }
 
     initXR().catch((err) => {
@@ -138,8 +177,10 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, st
       window.XR8?.stop()
       injectedScript?.remove()
       setXr8(null)
+      setIsReady(false)
+      setIsStarted(false)
     }
-  }, [xrSrc, enableSkyEffects])
+  }, [xrSrc, enableSkyEffects, autoStart, onError])
 
   const containerStyle: CSSProperties = {
     position: 'relative',
@@ -157,7 +198,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, st
   }
 
   return (
-    <XRContext.Provider value={{ xr8, registerTarget }}>
+    <XRContext.Provider value={{ xr8, registerTarget, startCamera }}>
       <div style={containerStyle}>
         {/* XR8 renders camera feed to this canvas (behind) */}
         <canvas ref={xrCanvasRef} style={fillStyle} />

@@ -46,6 +46,12 @@ export interface EighthwallCanvasProps {
   xrSrc: string
   /** Enable Sky Effects module for sky segmentation */
   enableSkyEffects?: boolean
+  /**
+   * Auto-start camera on mount.
+   * If false, call startCamera() manually to request camera permission and start XR session.
+   * Default: true
+   */
+  autoStart?: boolean
   children?: React.ReactNode
   style?: React.CSSProperties
   onError?: (err: unknown) => void
@@ -115,6 +121,11 @@ export interface XRContextValue {
   xr8: XR8Instance | null
   /** Register a target JSON file path for tracking (e.g. "/targets/macaw.json") */
   registerTarget: (path: string) => void
+  /**
+   * Start the camera and XR session.
+   * Only available when autoStart={false}. Returns true if started successfully.
+   */
+  startCamera: () => Promise<boolean>
 }
 
 /**

@@ -91,12 +91,44 @@ Root component. Sets up the XR session and provides context to child components.
 | Prop | Type | Description |
 |------|------|-------------|
 | `xrSrc` | `string` | URL to `xr.js` (must be a static file, not bundled) |
+| `autoStart` | `boolean?` | Auto-start camera on mount. If `false`, call `startCamera()` to start manually. Default: `true` |
+| `enableSkyEffects` | `boolean?` | Enable sky segmentation module |
 | `style` | `CSSProperties?` | Style applied to the container `div` |
 | `onError` | `(err: unknown) => void` | Called when XR initialization fails |
 
 Internally creates two stacked canvases:
 - **Back**: XR8 renders the camera feed
 - **Front**: R3F renders the 3D scene (transparent background)
+
+#### Manual Camera Start
+
+To request camera permission at a specific time (e.g., after user clicks a button):
+
+```tsx
+import { EighthwallCanvas, useXRContext } from '@j1ngzoue/8thwall-react-three-fiber'
+
+function StartButton() {
+  const { startCamera } = useXRContext()
+
+  async function handleClick() {
+    const success = await startCamera()
+    if (!success) {
+      alert('Failed to start camera')
+    }
+  }
+
+  return <button onClick={handleClick}>Start AR</button>
+}
+
+function App() {
+  return (
+    <EighthwallCanvas xrSrc="/xr.js" autoStart={false}>
+      <StartButton />
+      {/* Your AR content */}
+    </EighthwallCanvas>
+  )
+}
+```
 
 ### `<EighthwallCamera>`
 
@@ -170,6 +202,34 @@ Replaces the detected sky area with a custom texture or video. Requires `enableS
     opacity={1.0}
   />
 </EighthwallCanvas>
+```
+
+### `useXRContext()`
+
+Hook to access XR context. Must be used inside `<EighthwallCanvas>`.
+
+**Returns:**
+- `xr8`: XR8 instance (available after initialization)
+- `registerTarget(path)`: Register an image target JSON file
+- `startCamera()`: Start the camera manually (only when `autoStart={false}`)
+
+**Example:**
+
+```tsx
+import { useXRContext } from '@j1ngzoue/8thwall-react-three-fiber'
+
+function MyComponent() {
+  const { xr8, startCamera } = useXRContext()
+
+  // Access XR8 directly if needed
+  useEffect(() => {
+    if (xr8) {
+      console.log('XR8 is ready')
+    }
+  }, [xr8])
+
+  return <button onClick={startCamera}>Start Camera</button>
+}
 ```
 
 ## How it works
