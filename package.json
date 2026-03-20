@@ -4,7 +4,8 @@
   "description": "React Three Fiber components for 8th Wall image tracking",
   "homepage": "https://github.com/activeguild/8thwall-react-three-fiber",
   "license": "MIT",
-  "main": "dist/index.cjs",
+  "type": "module",
+  "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
