@@ -29,7 +29,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, enableFaceTracking = false, children, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, children, style, onError }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -114,25 +114,6 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, enableFaceTr
         }
       }
 
-      if (enableFaceTracking) {
-        console.log('[8thwall-r3f] Enabling Face Tracking')
-
-        // Add FaceController if available
-        if (xr8Instance.FaceController) {
-          console.log('[8thwall-r3f] Adding FaceController module')
-
-          // Configure face detection (max 1 face by default)
-          xr8Instance.FaceController.configure({
-            maxDetections: 1
-          })
-
-          pipelineModules.push(xr8Instance.FaceController.pipelineModule())
-          console.log('[8thwall-r3f] FaceController configured')
-        } else {
-          console.warn('[8thwall-r3f] FaceController not available in XR8')
-        }
-      }
-
       xr8Instance.addCameraPipelineModules(pipelineModules)
       console.log('[8thwall-r3f] addCameraPipelineModules done')
 
@@ -158,7 +139,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, enableFaceTr
       injectedScript?.remove()
       setXr8(null)
     }
-  }, [xrSrc, enableSkyEffects, enableFaceTracking])
+  }, [xrSrc, enableSkyEffects])
 
   const containerStyle: CSSProperties = {
     position: 'relative',
