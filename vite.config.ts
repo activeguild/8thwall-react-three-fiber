@@ -8,8 +8,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format === 'es' ? 'js' : 'cjs'}`,
+      formats: ['es'],
+      fileName: 'index',
     },
     rollupOptions: {
       external: ['react', 'react-dom', '@react-three/fiber', 'three', 'react/jsx-runtime'],
