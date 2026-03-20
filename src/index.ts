@@ -3,7 +3,6 @@ export { EighthwallCamera } from './components/EighthwallCamera'
 export { ImageTracker } from './components/ImageTracker'
 export { SkyEffects } from './components/SkyEffects'
 export { SkyReplacement } from './components/SkyReplacement'
-export { requestIMUPermission } from './imu'
 export type {
   EighthwallCanvasProps,
   EighthwallCameraProps,

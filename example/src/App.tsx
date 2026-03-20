@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, requestIMUPermission } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement } from '@j1ngzoue/8thwall-react-three-fiber'
 import type { SkySegmentation } from '@j1ngzoue/8thwall-react-three-fiber'
 import { generateSkyTexture, type SkyType } from './generateSkyTexture'
 
@@ -127,21 +127,6 @@ const selectStyle: React.CSSProperties = {
   color: '#000',
 }
 
-const sensorButtonStyle: React.CSSProperties = {
-  position: 'fixed',
-  bottom: 40,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  zIndex: 10,
-  padding: '12px 24px',
-  fontSize: 16,
-  borderRadius: 8,
-  border: 'none',
-  background: 'rgba(0,0,0,0.7)',
-  color: '#fff',
-  cursor: 'pointer',
-}
-
 const checkboxStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -162,7 +147,6 @@ const statusStyle: React.CSSProperties = {
 }
 
 export default function App() {
-  const [showSensorButton, setShowSensorButton] = useState(true)
   const [enableSkyEffects, setEnableSkyEffects] = useState(false)
   const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
   const [skyType, setSkyType] = useState<SkyType>('blue')
@@ -181,16 +165,6 @@ export default function App() {
       content: 'cube'
     }
   ])
-
-  async function handleSensorClick() {
-    try {
-      await requestIMUPermission()
-    } catch (err) {
-      console.error('IMU permission error:', err)
-    } finally {
-      setShowSensorButton(false)
-    }
-  }
 
   function updateMarkerContent(markerName: string, content: ContentType) {
     setMarkers(prev =>
@@ -275,12 +249,6 @@ export default function App() {
         <div style={statusStyle}>
           <div>空の検出: {skyDetected ? '✓ 検出中' : '× 未検出'}</div>
         </div>
-      )}
-
-      {showSensorButton && (
-        <button style={sensorButtonStyle} onClick={handleSensorClick}>
-          センサーを有効にする
-        </button>
       )}
 
       <EighthwallCanvas
