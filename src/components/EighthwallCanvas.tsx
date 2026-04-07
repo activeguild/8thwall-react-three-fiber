@@ -29,7 +29,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, children, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, disableWorldTracking = true, children, overlayChildren, style, onError }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -107,7 +107,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       )
       console.log('[8thwall-r3f] imageTargetData loaded, count:', imageTargetData.length)
 
-      xr8Instance.XrController.configure({ imageTargetData })
+      xr8Instance.XrController.configure({ imageTargetData, disableWorldTracking })
       console.log('[8thwall-r3f] XrController.configure done')
 
       const pipelineModules = [
@@ -180,7 +180,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       setIsReady(false)
       setIsStarted(false)
     }
-  }, [xrSrc, enableSkyEffects, autoStart, onError])
+  }, [xrSrc, enableSkyEffects, autoStart, disableWorldTracking, onError])
 
   const containerStyle: CSSProperties = {
     position: 'relative',
@@ -211,6 +211,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
         >
           {children}
         </Canvas>
+        {overlayChildren}
       </div>
     </XRContext.Provider>
   )

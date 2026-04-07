@@ -4,7 +4,7 @@ import type * as THREE from 'three'
 export interface XR8Instance {
   XrController: {
     // imageTargetData: actual JSON content of target files (offline tracking)
-    configure: (config: { imageTargetData?: unknown[]; mirroredDisplay?: boolean }) => void
+    configure: (config: { imageTargetData?: unknown[]; mirroredDisplay?: boolean; disableWorldTracking?: boolean }) => void
     pipelineModule: () => unknown
   }
   GlTextureRenderer: {
@@ -52,7 +52,16 @@ export interface EighthwallCanvasProps {
    * Default: true
    */
   autoStart?: boolean
+  /**
+   * Disable SLAM world tracking (6DoF).
+   * When true, DeviceMotion permission is not required (no permission modal on iOS).
+   * Image tracking still works without world tracking.
+   * Default: true
+   */
+  disableWorldTracking?: boolean
   children?: React.ReactNode
+  /** HTML elements rendered inside the XRContext provider but outside the R3F Canvas */
+  overlayChildren?: React.ReactNode
   style?: React.CSSProperties
   onError?: (err: unknown) => void
 }

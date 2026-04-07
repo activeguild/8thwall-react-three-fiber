@@ -185,7 +185,7 @@ function CameraStartButton() {
 }
 
 export default function App() {
-  const [autoStart, setAutoStart] = useState(true)
+  const [autoStart, setAutoStart] = useState(false)
   const [enableSkyEffects, setEnableSkyEffects] = useState(false)
   const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
   const [skyType, setSkyType] = useState<SkyType>('blue')
@@ -304,10 +304,11 @@ export default function App() {
         xrSrc="/xr.js"
         enableSkyEffects={enableSkyEffects || enableSkyReplacement}
         autoStart={autoStart}
+        disableWorldTracking={!(enableSkyEffects || enableSkyReplacement)}
         style={{ width: '100vw', height: '100vh' }}
         onError={(err) => console.error('XR Error:', err)}
+        overlayChildren={!autoStart ? <CameraStartButton /> : undefined}
       >
-        {!autoStart && <CameraStartButton />}
         <EighthwallCamera />
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
