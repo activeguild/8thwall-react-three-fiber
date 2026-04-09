@@ -8,6 +8,7 @@ export const XRContext = createContext<XRContextValue>({
     console.warn('startCamera called outside of EighthwallCanvas context')
     return false
   },
+  getTargetMetadata: () => null,
 })
 
 export function useXRContext(): XRContextValue {

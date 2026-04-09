@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, act } from '@testing-library/react'
 import { EighthwallCanvas } from '../components/EighthwallCanvas'
 
-// Mock @react-three/fiber Canvas
+// Mock @react-three/fiber Canvas — captures props for assertion
+let capturedCanvasProps: Record<string, unknown> = {}
 vi.mock('@react-three/fiber', () => ({
-  Canvas: ({ children, ref }: { children: React.ReactNode; ref?: React.Ref<HTMLCanvasElement> }) => (
-    <canvas data-testid="r3f-canvas" ref={ref}>{children}</canvas>
-  ),
+  Canvas: (props: any) => {
+    capturedCanvasProps = props
+    return <canvas data-testid="r3f-canvas">{props.children}</canvas>
+  },
 }))
 
 // Mock xr.js URL loading
@@ -22,6 +24,7 @@ describe('EighthwallCanvas', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    capturedCanvasProps = {}
     configure = vi.fn()
     run = vi.fn()
     addCameraPipelineModules = vi.fn()
@@ -86,5 +89,34 @@ describe('EighthwallCanvas', () => {
     // canvas ref が取れない jsdom 環境では smoke test として扱う
 
     vi.restoreAllMocks()
+  })
+
+  it('passes gl prop to R3F Canvas merged with alpha:true', () => {
+    render(
+      <EighthwallCanvas xrSrc="/xr.js" gl={{ preserveDrawingBuffer: true }}>
+        <div />
+      </EighthwallCanvas>
+    )
+    const gl = capturedCanvasProps.gl as Record<string, unknown>
+    expect(gl.preserveDrawingBuffer).toBe(true)
+    expect(gl.alpha).toBe(true)
+  })
+
+  it('passes dpr prop to R3F Canvas', () => {
+    render(
+      <EighthwallCanvas xrSrc="/xr.js" dpr={2}>
+        <div />
+      </EighthwallCanvas>
+    )
+    expect(capturedCanvasProps.dpr).toBe(2)
+  })
+
+  it('sets id on the container div', () => {
+    const { container } = render(
+      <EighthwallCanvas xrSrc="/xr.js" id="ar-canvas">
+        <div />
+      </EighthwallCanvas>
+    )
+    expect(container.querySelector('#ar-canvas')).toBeTruthy()
   })
 })

@@ -21,7 +21,7 @@ describe('XRContext', () => {
       addCameraPipelineModules: () => {},
     }
     render(
-      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: () => {} }}>
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: () => {}, startCamera: async () => true, getTargetMetadata: () => null }}>
         <Consumer />
       </XRContext.Provider>
     )

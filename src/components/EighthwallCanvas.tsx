@@ -2,6 +2,7 @@ import { useRef, useState, useLayoutEffect, useCallback, type CSSProperties } fr
 import { Canvas } from '@react-three/fiber'
 import { XRContext } from '../context/XRContext'
 import type { XR8Instance, EighthwallCanvasProps } from '../types'
+import { extractTargetName } from '../types'
 
 function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: boolean }> {
   return new Promise((resolve, reject) => {
@@ -29,7 +30,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, disableWorldTracking = true, children, overlayChildren, style, onError }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, disableWorldTracking = true, children, overlayChildren, style, onError, gl: userGl, dpr, id, rearCameraDeviceId }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -37,10 +38,16 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
   const [isReady, setIsReady] = useState(false) // XR8 initialized but not started
   const [isStarted, setIsStarted] = useState(false) // Camera started
 
+  const targetMetadataRef = useRef<Map<string, { imageWidth: number; imageHeight: number }>>(new Map())
+
   const registerTarget = useCallback((path: string) => {
     if (!targetPathsRef.current.includes(path)) {
       targetPathsRef.current = [...targetPathsRef.current, path]
     }
+  }, [])
+
+  const getTargetMetadata = useCallback((name: string) => {
+    return targetMetadataRef.current.get(name) ?? null
   }, [])
 
   // Keep XR canvas pixel dimensions in sync with display size (devicePixelRatio対応)
@@ -74,7 +81,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
 
     try {
       console.log('[8thwall-r3f] Starting camera...')
-      xr8.run({ canvas })
+      xr8.run({ canvas, ...(rearCameraDeviceId ? { cameraConfig: { deviceId: rearCameraDeviceId } } : {}) })
       setIsStarted(true)
       return true
     } catch (err) {
@@ -82,7 +89,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       onError?.(err)
       return false
     }
-  }, [isReady, isStarted, xr8, onError])
+  }, [isReady, isStarted, xr8, onError, rearCameraDeviceId])
 
   useLayoutEffect(() => {
     // Children's useLayoutEffect (ImageTracker) runs before this.
@@ -106,6 +113,14 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
         targetPathsRef.current.map((path) => fetch(path).then((r) => r.json()))
       )
       console.log('[8thwall-r3f] imageTargetData loaded, count:', imageTargetData.length)
+
+      for (let i = 0; i < targetPathsRef.current.length; i++) {
+        const data = imageTargetData[i]
+        const name = extractTargetName(targetPathsRef.current[i])
+        const imageWidth = data?.imageWidth ?? data?.image?.width ?? 0
+        const imageHeight = data?.imageHeight ?? data?.image?.height ?? 0
+        targetMetadataRef.current.set(name, { imageWidth, imageHeight })
+      }
 
       xr8Instance.XrController.configure({ imageTargetData, disableWorldTracking })
       console.log('[8thwall-r3f] XrController.configure done')
@@ -160,7 +175,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
         if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
 
         console.log('[8thwall-r3f] Auto-starting camera (autoStart=true)')
-        xr8Instance.run({ canvas })
+        xr8Instance.run({ canvas, ...(rearCameraDeviceId ? { cameraConfig: { deviceId: rearCameraDeviceId } } : {}) })
         setIsStarted(true)
       } else {
         console.log('[8thwall-r3f] Camera not started (autoStart=false), call startCamera() to start')
@@ -198,8 +213,8 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
   }
 
   return (
-    <XRContext.Provider value={{ xr8, registerTarget, startCamera }}>
-      <div style={containerStyle}>
+    <XRContext.Provider value={{ xr8, registerTarget, startCamera, getTargetMetadata }}>
+      <div id={id} style={containerStyle}>
         {/* XR8 renders camera feed to this canvas (behind) */}
         <canvas ref={xrCanvasRef} style={fillStyle} />
         {/* R3F renders 3D scene with transparent background on top */}
@@ -207,7 +222,8 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
           style={fillStyle}
           linear
           flat
-          gl={{ antialias: false, alpha: true }}
+          gl={{ antialias: false, ...userGl, alpha: true }}
+          dpr={dpr}
         >
           {children}
         </Canvas>
