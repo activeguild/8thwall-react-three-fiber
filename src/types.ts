@@ -22,7 +22,7 @@ export interface XR8Instance {
     configure: (config: { layerScenes?: string[] }) => void
     xrScene: () => any
   }
-  run: (config: { canvas: HTMLCanvasElement }) => void
+  run: (config: { canvas: HTMLCanvasElement; cameraConfig?: { deviceId?: string } }) => void
   stop: () => void
   addCameraPipelineModules: (modules: unknown[]) => void
   addCameraPipelineModule: (module: unknown) => void
@@ -39,6 +39,10 @@ export interface ImageFoundEvent {
   position: THREE.Vector3
   rotation: THREE.Quaternion
   scale: number
+  /** Target image width in pixels (from target JSON metadata) */
+  imageWidth: number
+  /** Target image height in pixels (from target JSON metadata) */
+  imageHeight: number
 }
 
 export interface EighthwallCanvasProps {
@@ -64,6 +68,14 @@ export interface EighthwallCanvasProps {
   overlayChildren?: React.ReactNode
   style?: React.CSSProperties
   onError?: (err: unknown) => void
+  /** WebGL renderer parameters passed to R3F Canvas. `alpha: true` is always forced for dual-canvas compositing. */
+  gl?: Record<string, unknown>
+  /** Device pixel ratio for R3F Canvas rendering resolution */
+  dpr?: number | [number, number]
+  /** HTML id attribute for the container element */
+  id?: string
+  /** Specific rear camera device ID (iOS 17+). Passed to XR8 run config. */
+  rearCameraDeviceId?: string
 }
 
 export interface EighthwallCameraProps {
@@ -73,6 +85,8 @@ export interface EighthwallCameraProps {
    * Typical smartphone rear camera (portrait): 60–65°.
    */
   fov?: number
+  /** Fired once when the first camera frame is received */
+  onFirstFrame?: () => void
 }
 
 export interface ImageTrackerProps {
@@ -82,6 +96,8 @@ export interface ImageTrackerProps {
   onUpdated?: (event: ImageFoundEvent) => void
   onLost?: () => void
   children?: React.ReactNode
+  /** Enable/disable tracking. Default: true */
+  enabled?: boolean
 }
 
 export interface SkySegmentation {
@@ -135,6 +151,13 @@ export interface XRContextValue {
    * Only available when autoStart={false}. Returns true if started successfully.
    */
   startCamera: () => Promise<boolean>
+  /** Get image dimensions for a registered target by name */
+  getTargetMetadata: (name: string) => { imageWidth: number; imageHeight: number } | null
+}
+
+export interface CompatibilityResult {
+  compatible: boolean
+  issues: string[]
 }
 
 /**
