@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, useXRContext } from '@j1ngzoue/8thwall-react-three-fiber'
-import type { SkySegmentation } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, useXRContext, permissionRequest, permissionGranted, checkBrowserCompatibility } from '@j1ngzoue/8thwall-react-three-fiber'
+import type { SkySegmentation, ImageFoundEvent } from '@j1ngzoue/8thwall-react-three-fiber'
 import { generateSkyTexture, type SkyType } from './generateSkyTexture'
 
 type ContentType = 'image' | 'cube' | 'video'
@@ -152,6 +152,14 @@ function CameraStartButton() {
 
   async function handleStartCamera() {
     setIsStarting(true)
+    // Permission API: リクエストしてからカメラ起動
+    const granted = await permissionRequest()
+    if (!granted) {
+      alert('カメラの許可が必要です')
+      setIsStarting(false)
+      return
+    }
+    console.log('[App] permissionGranted:', permissionGranted())
     const success = await startCamera()
     if (!success) {
       alert('カメラの起動に失敗しました')
@@ -184,12 +192,49 @@ function CameraStartButton() {
   )
 }
 
+function ScreenshotButton() {
+  function handleScreenshot() {
+    const canvas = document.querySelector('#ar-canvas canvas:last-of-type') as HTMLCanvasElement
+    if (!canvas) { console.warn('Canvas not found'); return }
+    const dataUrl = canvas.toDataURL('image/png', 1)
+    const link = document.createElement('a')
+    link.download = 'screenshot.png'
+    link.href = dataUrl
+    link.click()
+    console.log('[App] Screenshot captured')
+  }
+
+  return (
+    <button
+      style={{
+        position: 'fixed',
+        bottom: 100,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 10,
+        padding: '8px 16px',
+        fontSize: 14,
+        borderRadius: 8,
+        border: 'none',
+        background: 'rgba(0,100,200,0.8)',
+        color: '#fff',
+        cursor: 'pointer',
+      }}
+      onClick={handleScreenshot}
+    >
+      Screenshot
+    </button>
+  )
+}
+
 export default function App() {
   const [autoStart, setAutoStart] = useState(false)
   const [enableSkyEffects, setEnableSkyEffects] = useState(false)
   const [enableSkyReplacement, setEnableSkyReplacement] = useState(false)
   const [skyType, setSkyType] = useState<SkyType>('blue')
   const [skyDetected, setSkyDetected] = useState(false)
+  const [cameraReady, setCameraReady] = useState(false)
+  const [trackingEnabled, setTrackingEnabled] = useState(true)
   const [markers, setMarkers] = useState<MarkerConfig[]>([
     {
       name: 'input',
@@ -222,6 +267,15 @@ export default function App() {
     setSkyDetected(false)
     console.log('空が失われました')
   }
+
+  // Browser compatibility check on mount
+  useEffect(() => {
+    const result = checkBrowserCompatibility()
+    console.log('[App] Browser compatibility:', result)
+    if (!result.compatible) {
+      alert('ブラウザ互換性の問題: ' + result.issues.join(', '))
+    }
+  }, [])
 
   // Generate sky texture
   const skyTexture = useMemo(() => {
@@ -282,6 +336,16 @@ export default function App() {
           </div>
         )}
 
+        {/* Tracking Enabled トグル */}
+        <label style={checkboxStyle}>
+          <input
+            type="checkbox"
+            checked={trackingEnabled}
+            onChange={(e) => setTrackingEnabled(e.target.checked)}
+          />
+          <span style={labelStyle}>Tracking</span>
+        </label>
+
         {/* Auto Start トグル */}
         <label style={checkboxStyle}>
           <input
@@ -293,23 +357,34 @@ export default function App() {
         </label>
       </div>
 
-      {/* Sky 検出ステータス */}
-      {enableSkyEffects && (
-        <div style={statusStyle}>
-          <div>空の検出: {skyDetected ? '✓ 検出中' : '× 未検出'}</div>
-        </div>
-      )}
+      {/* ステータス表示 */}
+      <div style={statusStyle}>
+        <div>カメラ: {cameraReady ? '✓ Ready' : '... Loading'}</div>
+        <div>トラッキング: {trackingEnabled ? 'ON' : 'OFF'}</div>
+        {enableSkyEffects && <div>空の検出: {skyDetected ? '✓ 検出中' : '× 未検出'}</div>}
+      </div>
 
       <EighthwallCanvas
         xrSrc="/xr.js"
+        id="ar-canvas"
+        gl={{ preserveDrawingBuffer: true }}
+        dpr={2}
         enableSkyEffects={enableSkyEffects || enableSkyReplacement}
         autoStart={autoStart}
         disableWorldTracking={!(enableSkyEffects || enableSkyReplacement)}
         style={{ width: '100vw', height: '100vh' }}
         onError={(err) => console.error('XR Error:', err)}
-        overlayChildren={!autoStart ? <CameraStartButton /> : undefined}
+        overlayChildren={
+          <>
+            {!autoStart && <CameraStartButton />}
+            <ScreenshotButton />
+          </>
+        }
       >
-        <EighthwallCamera />
+        <EighthwallCamera onFirstFrame={() => {
+          console.log('[App] First camera frame received!')
+          setCameraReady(true)
+        }} />
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
 
@@ -317,7 +392,8 @@ export default function App() {
           <ImageTracker
             key={marker.name}
             targetImage={marker.targetImage}
-            onFound={(e) => console.log(`${marker.name} found! scale:`, e.scale, 'position:', e.position)}
+            enabled={trackingEnabled}
+            onFound={(e: ImageFoundEvent) => console.log(`${marker.name} found! scale:`, e.scale, 'imageSize:', e.imageWidth, 'x', e.imageHeight)}
             onLost={() => console.log(`${marker.name} lost!`)}
           >
             {marker.content === 'image' && <MarkerImage />}

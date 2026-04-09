@@ -1,4 +1,4 @@
-import { useRef, useState, useLayoutEffect, useCallback, type CSSProperties } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect, useCallback, type CSSProperties } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { XRContext } from '../context/XRContext'
 import type { XR8Instance, EighthwallCanvasProps } from '../types'
@@ -37,6 +37,8 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
   const targetPathsRef = useRef<string[]>([])
   const [isReady, setIsReady] = useState(false) // XR8 initialized but not started
   const [isStarted, setIsStarted] = useState(false) // Camera started
+  const onErrorRef = useRef(onError)
+  useEffect(() => { onErrorRef.current = onError }, [onError])
 
   const targetMetadataRef = useRef<Map<string, { imageWidth: number; imageHeight: number }>>(new Map())
 
@@ -86,10 +88,10 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       return true
     } catch (err) {
       console.error('[8thwall-r3f] Failed to start camera:', err)
-      onError?.(err)
+      onErrorRef.current?.(err)
       return false
     }
-  }, [isReady, isStarted, xr8, onError, rearCameraDeviceId])
+  }, [isReady, isStarted, xr8, rearCameraDeviceId])
 
   useLayoutEffect(() => {
     // Children's useLayoutEffect (ImageTracker) runs before this.
@@ -184,7 +186,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
 
     initXR().catch((err) => {
       console.error('[8thwall-r3f] XR initialization failed:', err)
-      onError?.(err)
+      onErrorRef.current?.(err)
     })
 
     return () => {
@@ -195,7 +197,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       setIsReady(false)
       setIsStarted(false)
     }
-  }, [xrSrc, enableSkyEffects, autoStart, disableWorldTracking, onError, rearCameraDeviceId])
+  }, [xrSrc, enableSkyEffects, autoStart, disableWorldTracking, rearCameraDeviceId])
 
   const containerStyle: CSSProperties = {
     position: 'relative',
