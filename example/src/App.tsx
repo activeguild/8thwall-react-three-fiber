@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { TextureLoader, VideoTexture } from 'three'
-import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, useXRContext, permissionRequest, permissionGranted, checkBrowserCompatibility } from '@j1ngzoue/8thwall-react-three-fiber'
+import { EighthwallCanvas, EighthwallCamera, ImageTracker, SkyEffects, SkyReplacement, useXRContext, checkBrowserCompatibility } from '@j1ngzoue/8thwall-react-three-fiber'
 import type { SkySegmentation, ImageFoundEvent } from '@j1ngzoue/8thwall-react-three-fiber'
 import { generateSkyTexture, type SkyType } from './generateSkyTexture'
 
@@ -152,14 +152,6 @@ function CameraStartButton() {
 
   async function handleStartCamera() {
     setIsStarting(true)
-    // Permission API: リクエストしてからカメラ起動
-    const granted = await permissionRequest()
-    if (!granted) {
-      alert('カメラの許可が必要です')
-      setIsStarting(false)
-      return
-    }
-    console.log('[App] permissionGranted:', permissionGranted())
     const success = await startCamera()
     if (!success) {
       alert('カメラの起動に失敗しました')
