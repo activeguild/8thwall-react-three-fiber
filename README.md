@@ -1,7 +1,5 @@
 # @j1ngzoue/8thwall-react-three-fiber
 
-> **⚠️ Experimental** — This package is under active development. APIs may change without notice. Not recommended for production use.
-
 React Three Fiber components for [8th Wall](https://www.8thwall.com/) image tracking. Uses the open-source 8th Wall engine ([packages/engine](https://github.com/8thwall/8thwall/tree/main/packages/engine)).
 
 ## Installation
