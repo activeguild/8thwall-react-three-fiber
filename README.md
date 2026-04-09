@@ -92,8 +92,14 @@ Root component. Sets up the XR session and provides context to child components.
 |------|------|-------------|
 | `xrSrc` | `string` | URL to `xr.js` (must be a static file, not bundled) |
 | `autoStart` | `boolean?` | Auto-start camera on mount. If `false`, call `startCamera()` to start manually. Default: `true` |
+| `disableWorldTracking` | `boolean?` | Disable 6DoF world tracking. Skips DeviceMotion permission on iOS. Image tracking still works. Default: `true` |
 | `enableSkyEffects` | `boolean?` | Enable sky segmentation module |
+| `gl` | `Record<string, unknown>?` | WebGL renderer parameters passed to R3F Canvas. `alpha: true` is always forced. |
+| `dpr` | `number \| [number, number]?` | Device pixel ratio for R3F Canvas |
+| `id` | `string?` | HTML id attribute for the container element |
+| `rearCameraDeviceId` | `string?` | Specific rear camera device ID (iOS 17+) |
 | `style` | `CSSProperties?` | Style applied to the container `div` |
+| `overlayChildren` | `ReactNode?` | HTML elements rendered inside context but outside the R3F Canvas |
 | `onError` | `(err: unknown) => void` | Called when XR initialization fails |
 
 Internally creates two stacked canvases:
@@ -130,11 +136,34 @@ function App() {
 }
 ```
 
+#### Screenshot / Video Recording
+
+To enable `canvas.toDataURL()` or `canvas.captureStream()`, set `preserveDrawingBuffer`:
+
+```tsx
+<EighthwallCanvas
+  xrSrc="/xr.js"
+  id="ar-canvas"
+  gl={{ preserveDrawingBuffer: true }}
+  dpr={2}
+>
+  {/* ... */}
+</EighthwallCanvas>
+```
+
+```ts
+const canvas = document.querySelector('#ar-canvas canvas:last-of-type') as HTMLCanvasElement
+const dataUrl = canvas.toDataURL('image/png', 1)
+```
+
 ### `<EighthwallCamera>`
 
 Updates the Three.js camera to match the physical device camera each frame. Place inside `<EighthwallCanvas>`.
 
-No props.
+| Prop | Type | Description |
+|------|------|-------------|
+| `fov` | `number?` | Vertical FOV in degrees. Auto-estimated from video resolution if omitted. |
+| `onFirstFrame` | `() => void` | Fired once when the first camera frame is received. Useful for dismissing loading UI. |
 
 ### `<ImageTracker>`
 
@@ -143,6 +172,7 @@ Tracks an image target and shows its children at the tracked position. Place ins
 | Prop | Type | Description |
 |------|------|-------------|
 | `targetImage` | `string` | Path to the target `.json` file (e.g. `"/targets/my-target.json"`) |
+| `enabled` | `boolean?` | Enable/disable tracking dynamically. Default: `true` |
 | `onFound` | `(event: ImageFoundEvent) => void` | Called when the target is first detected |
 | `onUpdated` | `(event: ImageFoundEvent) => void` | Called each frame the target is tracked |
 | `onLost` | `() => void` | Called when the target is no longer detected |
@@ -153,6 +183,8 @@ interface ImageFoundEvent {
   position: THREE.Vector3
   rotation: THREE.Quaternion
   scale: number
+  imageWidth: number   // Target image width in pixels
+  imageHeight: number  // Target image height in pixels
 }
 ```
 
@@ -212,25 +244,48 @@ Hook to access XR context. Must be used inside `<EighthwallCanvas>`.
 - `xr8`: XR8 instance (available after initialization)
 - `registerTarget(path)`: Register an image target JSON file
 - `startCamera()`: Start the camera manually (only when `autoStart={false}`)
+- `getTargetMetadata(name)`: Get image dimensions `{ imageWidth, imageHeight }` for a registered target
 
-**Example:**
+### `permissionGranted()` / `permissionDenied()` / `permissionRequest()`
+
+Camera permission utilities. Use **before** mounting `<EighthwallCanvas>` to check/request camera access.
 
 ```tsx
-import { useXRContext } from '@j1ngzoue/8thwall-react-three-fiber'
+import { permissionRequest } from '@j1ngzoue/8thwall-react-three-fiber'
 
-function MyComponent() {
-  const { xr8, startCamera } = useXRContext()
+function ARScreen() {
+  const [permitted, setPermitted] = useState<boolean | null>(null)
 
-  // Access XR8 directly if needed
   useEffect(() => {
-    if (xr8) {
-      console.log('XR8 is ready')
-    }
-  }, [xr8])
+    permissionRequest().then(setPermitted)
+  }, [])
 
-  return <button onClick={startCamera}>Start Camera</button>
+  if (permitted === null) return <div>Checking camera permission...</div>
+  if (!permitted) return <div>Camera permission required</div>
+
+  return (
+    <EighthwallCanvas xrSrc="/xr.js" autoStart={true}>
+      {/* AR content */}
+    </EighthwallCanvas>
+  )
 }
 ```
+
+> **Important:** Do not call `permissionRequest()` after `<EighthwallCanvas>` has mounted. XR8 manages its own camera stream — calling `getUserMedia` concurrently will conflict.
+
+### `checkBrowserCompatibility()`
+
+Check browser support for AR features.
+
+```tsx
+import { checkBrowserCompatibility } from '@j1ngzoue/8thwall-react-three-fiber'
+
+const result = checkBrowserCompatibility()
+// { compatible: true, issues: [] }
+// { compatible: false, issues: ['WebGL2 not supported', 'getUserMedia not available'] }
+```
+
+Checks: WebGL, `getUserMedia`, `captureStream`.
 
 ## How it works
 
