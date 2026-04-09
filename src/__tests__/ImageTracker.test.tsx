@@ -194,6 +194,57 @@ describe('ImageTracker', () => {
     expect(fakeXr8.addCameraPipelineModule).not.toHaveBeenCalled()
   })
 
+  it('includes imageWidth and imageHeight from target metadata in onFound', () => {
+    let capturedModule: any = null
+    const fakeXr8 = {
+      addCameraPipelineModule: vi.fn((m: any) => { capturedModule = m }),
+      removeCameraPipelineModule: vi.fn(),
+    }
+
+    const getTargetMetadata = vi.fn().mockReturnValue({ imageWidth: 1920, imageHeight: 1080 })
+    const onFound = vi.fn()
+
+    const makeCopyable = () => ({ copy: vi.fn(), setScalar: vi.fn(), set: vi.fn() })
+    const groupProto = HTMLElement.prototype as any
+    const origPosition = Object.getOwnPropertyDescriptor(groupProto, 'position')
+    const origQuaternion = Object.getOwnPropertyDescriptor(groupProto, 'quaternion')
+    const origScale = Object.getOwnPropertyDescriptor(groupProto, 'scale')
+    groupProto.position = makeCopyable()
+    groupProto.quaternion = makeCopyable()
+    groupProto.scale = makeCopyable()
+
+    try {
+      render(
+        <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata }}>
+          <ImageTracker targetImage="/targets/macaw.json" onFound={onFound} />
+        </XRContext.Provider>
+      )
+
+      act(() => {
+        const listener = capturedModule?.listeners?.find((l: any) => l.event === 'reality.imagefound')
+        listener?.process({
+          detail: {
+            name: 'macaw',
+            position: { x: 0, y: 0, z: -1 },
+            rotation: { x: 0, y: 0, z: 0, w: 1 },
+            scale: 1,
+          },
+        })
+      })
+
+      expect(onFound).toHaveBeenCalledWith(
+        expect.objectContaining({ imageWidth: 1920, imageHeight: 1080 })
+      )
+    } finally {
+      if (origPosition) Object.defineProperty(groupProto, 'position', origPosition)
+      else delete groupProto.position
+      if (origQuaternion) Object.defineProperty(groupProto, 'quaternion', origQuaternion)
+      else delete groupProto.quaternion
+      if (origScale) Object.defineProperty(groupProto, 'scale', origScale)
+      else delete groupProto.scale
+    }
+  })
+
   it('removes pipeline module when enabled changes from true to false', () => {
     const fakeXr8 = {
       addCameraPipelineModule: vi.fn(),
