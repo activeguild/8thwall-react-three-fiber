@@ -195,7 +195,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       setIsReady(false)
       setIsStarted(false)
     }
-  }, [xrSrc, enableSkyEffects, autoStart, disableWorldTracking, onError])
+  }, [xrSrc, enableSkyEffects, autoStart, disableWorldTracking, onError, rearCameraDeviceId])
 
   const containerStyle: CSSProperties = {
     position: 'relative',
