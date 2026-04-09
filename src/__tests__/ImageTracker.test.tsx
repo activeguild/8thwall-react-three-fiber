@@ -37,7 +37,7 @@ describe('ImageTracker', () => {
   it('calls registerTarget with extracted name on mount', () => {
     const registerTarget = vi.fn()
     render(
-      <XRContext.Provider value={{ xr8: null, registerTarget }}>
+      <XRContext.Provider value={{ xr8: null, registerTarget, startCamera: async () => true, getTargetMetadata: () => null }}>
         <ImageTracker targetImage="/targets/macaw.json">
           <mesh />
         </ImageTracker>
@@ -49,7 +49,7 @@ describe('ImageTracker', () => {
   it('renders without crashing', () => {
     expect(() =>
       render(
-        <XRContext.Provider value={{ xr8: null, registerTarget: vi.fn() }}>
+        <XRContext.Provider value={{ xr8: null, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
           <ImageTracker targetImage="bird.json" />
         </XRContext.Provider>
       )
@@ -79,7 +79,7 @@ describe('ImageTracker', () => {
 
     const onFound = vi.fn()
     render(
-      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn() }}>
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
         <ImageTracker targetImage="/targets/macaw.json" onFound={onFound}>
           <mesh />
         </ImageTracker>
@@ -120,7 +120,7 @@ describe('ImageTracker', () => {
     }
 
     const { container } = render(
-      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn() }}>
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
         <ImageTracker targetImage="/targets/macaw.json" />
       </XRContext.Provider>
     )
@@ -149,7 +149,7 @@ describe('ImageTracker', () => {
 
     const onUpdated = vi.fn()
     render(
-      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn() }}>
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
         <ImageTracker targetImage="/targets/macaw.json" onUpdated={onUpdated} />
       </XRContext.Provider>
     )
@@ -177,5 +177,43 @@ describe('ImageTracker', () => {
     }
 
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ scale: 1.5 }))
+  })
+
+  it('does not register pipeline module when enabled=false', () => {
+    const fakeXr8 = {
+      addCameraPipelineModule: vi.fn(),
+      removeCameraPipelineModule: vi.fn(),
+    }
+
+    render(
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
+        <ImageTracker targetImage="/targets/macaw.json" enabled={false} />
+      </XRContext.Provider>
+    )
+
+    expect(fakeXr8.addCameraPipelineModule).not.toHaveBeenCalled()
+  })
+
+  it('removes pipeline module when enabled changes from true to false', () => {
+    const fakeXr8 = {
+      addCameraPipelineModule: vi.fn(),
+      removeCameraPipelineModule: vi.fn(),
+    }
+
+    const { rerender } = render(
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
+        <ImageTracker targetImage="/targets/macaw.json" enabled={true} />
+      </XRContext.Provider>
+    )
+
+    expect(fakeXr8.addCameraPipelineModule).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn(), startCamera: async () => true, getTargetMetadata: () => null }}>
+        <ImageTracker targetImage="/targets/macaw.json" enabled={false} />
+      </XRContext.Provider>
+    )
+
+    expect(fakeXr8.removeCameraPipelineModule).toHaveBeenCalledWith('image-tracker-macaw')
   })
 })

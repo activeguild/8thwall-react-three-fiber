@@ -12,8 +12,8 @@ interface XRImagePose {
   scale: number
 }
 
-export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children }: ImageTrackerProps) {
-  const { registerTarget, xr8 } = useXRContext()
+export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children, enabled = true }: ImageTrackerProps) {
+  const { registerTarget, xr8, getTargetMetadata } = useXRContext()
   const groupRef = useRef<THREE.Group>(null)
   const [visible, setVisible] = useState(false)
   const targetName = extractTargetName(targetImage)
@@ -32,7 +32,7 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
   }, [registerTarget, targetImage])
 
   useEffect(() => {
-    if (!xr8) return
+    if (!xr8 || !enabled) return
 
     const moduleName = `image-tracker-${targetName}`
     xr8.addCameraPipelineModule({
@@ -49,10 +49,13 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
           process: ({ detail }: { detail: XRImagePose }) => {
             if (detail.name !== targetName) return
             setVisible(true)
+            const metadata = getTargetMetadata(targetName)
             onFoundRef.current?.({
               position: new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z),
               rotation: new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w),
               scale: detail.scale,
+              imageWidth: metadata?.imageWidth ?? 0,
+              imageHeight: metadata?.imageHeight ?? 0,
             })
           },
         },
@@ -70,23 +73,27 @@ export function ImageTracker({ targetImage, onFound, onUpdated, onLost, children
 
     return () => {
       latestPoseRef.current = null
+      setVisible(false)
       xr8.removeCameraPipelineModule(moduleName)
     }
-  }, [xr8, targetName])
+  }, [xr8, targetName, enabled])
 
   useFrame(() => {
+    if (!enabled) return
     const pose = latestPoseRef.current
     if (!pose || !groupRef.current) return
 
-    // Apply XR8 pose directly
     groupRef.current.position.set(pose.position.x, pose.position.y, pose.position.z)
     groupRef.current.quaternion.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
     groupRef.current.scale.setScalar(pose.scale)
 
+    const metadata = getTargetMetadata(targetName)
     onUpdatedRef.current?.({
       position: new THREE.Vector3(pose.position.x, pose.position.y, pose.position.z),
       rotation: new THREE.Quaternion(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w),
       scale: pose.scale,
+      imageWidth: metadata?.imageWidth ?? 0,
+      imageHeight: metadata?.imageHeight ?? 0,
     })
   })
 
