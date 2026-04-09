@@ -119,8 +119,8 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       for (let i = 0; i < targetPathsRef.current.length; i++) {
         const data = imageTargetData[i]
         const name = extractTargetName(targetPathsRef.current[i])
-        const imageWidth = data?.imageWidth ?? data?.image?.width ?? 0
-        const imageHeight = data?.imageHeight ?? data?.image?.height ?? 0
+        const imageWidth = data?.properties?.width ?? data?.imageWidth ?? 0
+        const imageHeight = data?.properties?.height ?? data?.imageHeight ?? 0
         targetMetadataRef.current.set(name, { imageWidth, imageHeight })
       }
 
