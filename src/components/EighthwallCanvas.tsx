@@ -30,7 +30,7 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, disableWorldTracking = true, children, overlayChildren, style, onError, gl: userGl, dpr, id, rearCameraDeviceId }: EighthwallCanvasProps) {
+export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, disableWorldTracking = true, children, overlayChildren, style, onError, gl: userGl, dpr, id, rearCameraDeviceId, flat = true }: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -223,7 +223,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
         <Canvas
           style={fillStyle}
           linear
-          flat
+          flat={flat}
           gl={{ antialias: false, ...userGl, alpha: true }}
           dpr={dpr}
         >

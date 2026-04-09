@@ -96,6 +96,7 @@ Root component. Sets up the XR session and provides context to child components.
 | `dpr` | `number \| [number, number]?` | Device pixel ratio for R3F Canvas |
 | `id` | `string?` | HTML id attribute for the container element |
 | `rearCameraDeviceId` | `string?` | Specific rear camera device ID (iOS 17+) |
+| `flat` | `boolean?` | Disable tone mapping in R3F Canvas. Default: `true` |
 | `style` | `CSSProperties?` | Style applied to the container `div` |
 | `overlayChildren` | `ReactNode?` | HTML elements rendered inside context but outside the R3F Canvas |
 | `onError` | `(err: unknown) => void` | Called when XR initialization fails |

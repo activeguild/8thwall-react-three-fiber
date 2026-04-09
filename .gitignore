@@ -14,7 +14,6 @@ example/input.png
 example/generate-target.mjs
 
 # Local config / tooling
-.claude/
 spec.md
 docs/superpowers/
 .worktrees/

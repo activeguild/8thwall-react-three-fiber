@@ -76,6 +76,12 @@ export interface EighthwallCanvasProps {
   id?: string
   /** Specific rear camera device ID (iOS 17+). Passed to XR8 run config. */
   rearCameraDeviceId?: string
+  /**
+   * Disable tone mapping in R3F Canvas.
+   * When true, colors are not tone-mapped (linear output).
+   * Default: true
+   */
+  flat?: boolean
 }
 
 export interface EighthwallCameraProps {
