@@ -14,9 +14,14 @@ const mockXR8 = {
     configure: vi.fn(),
     pipelineModule: vi.fn(() => ({ name: 'XrController' })),
   },
+  GlTextureRenderer: {
+    pipelineModule: vi.fn(() => ({ name: 'GlTextureRenderer' })),
+  },
   run: vi.fn(),
   stop: vi.fn(),
   addCameraPipelineModules: vi.fn(),
+  addCameraPipelineModule: vi.fn(),
+  removeCameraPipelineModule: vi.fn(),
 }
 
 Object.defineProperty(window, 'XR8', {

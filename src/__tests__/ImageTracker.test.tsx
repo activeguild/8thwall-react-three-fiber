@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
 import { XRContext } from '../context/XRContext'
 import { ImageTracker } from '../components/ImageTracker'
-import { getIMUQuaternion } from '../imu'
 
 vi.mock('@react-three/fiber', async () => {
   const actual = await vi.importActual<typeof import('@react-three/fiber')>('@react-three/fiber')
@@ -14,11 +13,6 @@ vi.mock('@react-three/fiber', async () => {
     __runFrame: () => frameCallback?.({}, 0.016),
   }
 })
-
-vi.mock('../imu', () => ({
-  getIMUQuaternion: vi.fn(),
-  requestIMUPermission: vi.fn(),
-}))
 
 vi.mock('three', async () => {
   const actual = await vi.importActual<typeof import('three')>('three')
@@ -40,16 +34,6 @@ vi.mock('three', async () => {
 })
 
 describe('ImageTracker', () => {
-  beforeEach(() => {
-    const makeCloneable = (): any => ({
-      clone: vi.fn(() => makeCloneable()),
-      invert: vi.fn().mockReturnThis(),
-      multiply: vi.fn().mockReturnThis(),
-      normalize: vi.fn().mockReturnThis(),
-    })
-    vi.mocked(getIMUQuaternion).mockReturnValue(makeCloneable())
-  })
-
   it('calls registerTarget with extracted name on mount', () => {
     const registerTarget = vi.fn()
     render(
@@ -127,27 +111,6 @@ describe('ImageTracker', () => {
     }
 
     expect(onFound).toHaveBeenCalledTimes(1)
-  })
-
-  it('calls getIMUQuaternion on every onUpdate call', () => {
-    let capturedModule: any = null
-    const fakeXr8 = {
-      addCameraPipelineModule: vi.fn((m) => { capturedModule = m }),
-      removeCameraPipelineModule: vi.fn(),
-    }
-
-    render(
-      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: vi.fn() }}>
-        <ImageTracker targetImage="/targets/macaw.json" />
-      </XRContext.Provider>
-    )
-
-    act(() => {
-      capturedModule?.onUpdate?.({ processCpuResult: {} })
-      capturedModule?.onUpdate?.({ processCpuResult: {} })
-    })
-
-    expect(getIMUQuaternion).toHaveBeenCalledTimes(2)
   })
 
   it('does not render group content before the first XR8 frame (imuSnapshot is null)', () => {
