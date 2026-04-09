@@ -23,11 +23,14 @@ function estimateFovFromVideo(videoWidth: number, videoHeight: number): number {
   return (landscapeHFov * 180) / Math.PI
 }
 
-export function EighthwallCamera({ fov }: EighthwallCameraProps) {
+export function EighthwallCamera({ fov, onFirstFrame }: EighthwallCameraProps) {
   const { xr8 } = useXRContext()
   const cameraDataRef = useRef<CameraState | null>(null)
   const estimatedFovRef = useRef<number>(60)
   const loggedOnce = useRef(false)
+  const firstFrameFiredRef = useRef(false)
+  const onFirstFrameRef = useRef(onFirstFrame)
+  useEffect(() => { onFirstFrameRef.current = onFirstFrame }, [onFirstFrame])
   // オブジェクトを事前確保して再利用（GC圧迫を防ぐ）
   const _position = useRef(new THREE.Vector3())
   const _quaternion = useRef(new THREE.Quaternion())
@@ -55,11 +58,16 @@ export function EighthwallCamera({ fov }: EighthwallCameraProps) {
           position: reality.position,
           rotation: reality.rotation,
         }
+        if (!firstFrameFiredRef.current) {
+          firstFrameFiredRef.current = true
+          onFirstFrameRef.current?.()
+        }
       },
     })
     return () => {
       cameraDataRef.current = null
       loggedOnce.current = false
+      firstFrameFiredRef.current = false
       xr8.removeCameraPipelineModule('eighthwall-camera')
     }
   }, [xr8])
