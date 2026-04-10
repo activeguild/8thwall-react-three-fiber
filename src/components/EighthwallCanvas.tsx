@@ -101,6 +101,25 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
 
     async function initXR() {
       console.log('[8thwall-r3f] build v5 — initXR start')
+
+      // When world tracking is disabled, bypass DeviceMotion/Orientation permission dialogs.
+      // XR8's camera pipeline always requests these permissions regardless of disableWorldTracking,
+      // but image-only tracking doesn't need device motion data.
+      let savedMotionPermission: (() => Promise<PermissionState>) | undefined
+      let savedOrientationPermission: (() => Promise<PermissionState>) | undefined
+      if (disableWorldTracking) {
+        const DME = globalThis.DeviceMotionEvent as typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> }
+        const DOE = globalThis.DeviceOrientationEvent as typeof DeviceOrientationEvent & { requestPermission?: () => Promise<PermissionState> }
+        if (DME.requestPermission) {
+          savedMotionPermission = DME.requestPermission
+          DME.requestPermission = () => Promise.resolve('granted' as PermissionState)
+        }
+        if (DOE.requestPermission) {
+          savedOrientationPermission = DOE.requestPermission
+          DOE.requestPermission = () => Promise.resolve('granted' as PermissionState)
+        }
+      }
+
       const { script, isNew } = await loadScript(xrSrc)
       console.log('[8thwall-r3f] loadScript resolved', { isNew, stopped, XR8: window.XR8, XrController: window.XR8?.XrController })
       if (isNew) injectedScript = script
@@ -181,6 +200,14 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
         setIsStarted(true)
       } else {
         console.log('[8thwall-r3f] Camera not started (autoStart=false), call startCamera() to start')
+      }
+
+      // Restore original requestPermission after XR8 has started
+      if (disableWorldTracking) {
+        const DME = globalThis.DeviceMotionEvent as typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> }
+        const DOE = globalThis.DeviceOrientationEvent as typeof DeviceOrientationEvent & { requestPermission?: () => Promise<PermissionState> }
+        if (savedMotionPermission) DME.requestPermission = savedMotionPermission
+        if (savedOrientationPermission) DOE.requestPermission = savedOrientationPermission
       }
     }
 
