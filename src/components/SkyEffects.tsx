@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useXRContext } from '../context/XRContext'
-import type { SkyEffectsProps, SkySegmentation } from '../types'
+import type { PipelineUpdateArgs, SkyEffectsProps, SkySegmentation } from '../types'
 
 export function SkyEffects({
   detectionThreshold = 0.8,
@@ -32,7 +32,7 @@ export function SkyEffects({
     const moduleName = 'sky-effects-tracker'
     xr8.addCameraPipelineModule({
       name: moduleName,
-      onUpdate: (args: any) => {
+      onUpdate: (args: PipelineUpdateArgs) => {
         const processCpuResult = args?.processCpuResult
         const layersController = processCpuResult?.layerscontroller
         const skyLayer = layersController?.layers?.sky

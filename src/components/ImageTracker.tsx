@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
-import type { ImageTrackerProps } from '../types'
+import type { ImageTrackerProps, PipelineUpdateArgs } from '../types'
 import { extractTargetName } from '../types'
 
 interface XRImagePose {
@@ -50,7 +50,7 @@ export function ImageTracker({
     const moduleName = `image-tracker-${targetName}`
     xr8.addCameraPipelineModule({
       name: moduleName,
-      onUpdate: ({ processCpuResult }: any) => {
+      onUpdate: ({ processCpuResult }: PipelineUpdateArgs) => {
         const detectedImages: XRImagePose[] | undefined = processCpuResult?.reality?.detectedImages
         if (!detectedImages) return
         const pose = detectedImages.find((img) => img.name === targetName)
@@ -94,7 +94,7 @@ export function ImageTracker({
       setVisible(false)
       xr8.removeCameraPipelineModule(moduleName)
     }
-  }, [xr8, targetName, enabled])
+  }, [xr8, targetName, enabled, getTargetMetadata])
 
   useFrame(() => {
     if (!enabled) return

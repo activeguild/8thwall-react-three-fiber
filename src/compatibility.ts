@@ -20,7 +20,7 @@ export function checkBrowserCompatibility(): CompatibilityResult {
   }
 
   // Check captureStream support (for video recording)
-  if (typeof (canvas as any).captureStream !== 'function') {
+  if (typeof (canvas as HTMLCanvasElement & { captureStream?: unknown }).captureStream !== 'function') {
     issues.push('captureStream not supported')
   }
 

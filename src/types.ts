@@ -1,5 +1,47 @@
 import type * as THREE from 'three'
 
+/** Pipeline module onStart callback argument */
+export interface PipelineStartArgs {
+  videoWidth: number
+  videoHeight: number
+  canvas?: HTMLCanvasElement
+  [key: string]: unknown
+}
+
+/** Pipeline module onUpdate callback argument */
+export interface PipelineUpdateArgs {
+  processCpuResult?: {
+    reality?: {
+      position?: { x: number; y: number; z: number }
+      rotation?: { x: number; y: number; z: number; w: number }
+      intrinsics?: number[]
+      detectedImages?: Array<{
+        name: string
+        position: { x: number; y: number; z: number }
+        rotation: { x: number; y: number; z: number; w: number }
+        scale: number
+        [key: string]: unknown
+      }>
+      [key: string]: unknown
+    }
+    layerscontroller?: {
+      layers?: {
+        sky?: {
+          percentage?: number
+          foreground?: { width: number; height: number; data: Uint8Array }
+          texture?: WebGLTexture
+          textureWidth?: number
+          textureHeight?: number
+          [key: string]: unknown
+        }
+        [key: string]: unknown
+      }
+    }
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
 // XR8 global type (minimal surface we use)
 export interface XR8Instance {
   XrController: {
@@ -24,7 +66,7 @@ export interface XR8Instance {
   Threejs?: {
     pipelineModule: () => unknown
     configure: (config: { layerScenes?: string[] }) => void
-    xrScene: () => any
+    xrScene: () => unknown
   }
   run: (config: { canvas: HTMLCanvasElement; cameraConfig?: { deviceId?: string } }) => void
   stop: () => void

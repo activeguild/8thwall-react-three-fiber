@@ -29,7 +29,7 @@ export async function permissionRequest(): Promise<boolean> {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-    stream.getTracks().forEach((track) => track.stop())
+    for (const track of stream.getTracks()) track.stop()
     cachedState = 'granted'
     return true
   } catch {

@@ -1,8 +1,8 @@
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
-import type { SkyReplacementProps } from '../types'
+import type { PipelineStartArgs, PipelineUpdateArgs, SkyReplacementProps } from '../types'
 
 /**
  * Sky Replacement Component
@@ -153,7 +153,7 @@ export function SkyReplacement({
 
     xr8.addCameraPipelineModule({
       name: moduleName,
-      onStart: (args: any) => {
+      onStart: (args: PipelineStartArgs) => {
         // Get WebGL context from XR8
         const canvas = args?.canvas
         if (canvas) {
@@ -163,7 +163,7 @@ export function SkyReplacement({
           }
         }
       },
-      onUpdate: (args: any) => {
+      onUpdate: (args: PipelineUpdateArgs) => {
         const processCpuResult = args?.processCpuResult
         const layersController = processCpuResult?.layerscontroller
         const skyLayer = layersController?.layers?.sky

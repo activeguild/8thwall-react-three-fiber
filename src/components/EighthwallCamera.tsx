@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
-import type { EighthwallCameraProps } from '../types'
+import type { EighthwallCameraProps, PipelineStartArgs, PipelineUpdateArgs } from '../types'
 
 interface CameraState {
   position: { x: number; y: number; z: number }
@@ -43,7 +43,7 @@ export function EighthwallCamera({ fov, onFirstFrame }: EighthwallCameraProps) {
     if (!xr8) return
     xr8.addCameraPipelineModule({
       name: 'eighthwall-camera',
-      onStart: ({ videoWidth, videoHeight }: any) => {
+      onStart: ({ videoWidth, videoHeight }: PipelineStartArgs) => {
         const estimated = estimateFovFromVideo(videoWidth, videoHeight)
         estimatedFovRef.current = estimated
         const active = fov ?? estimated
@@ -58,9 +58,9 @@ export function EighthwallCamera({ fov, onFirstFrame }: EighthwallCameraProps) {
           active.toFixed(1),
         )
       },
-      onUpdate: ({ processCpuResult }: any) => {
+      onUpdate: ({ processCpuResult }: PipelineUpdateArgs) => {
         const reality = processCpuResult?.reality
-        if (!reality?.position) return
+        if (!reality?.position || !reality?.rotation) return
         if (!loggedOnce.current) {
           loggedOnce.current = true
           console.log('[EighthwallCamera] first pose:', JSON.stringify(reality.position))
@@ -81,7 +81,7 @@ export function EighthwallCamera({ fov, onFirstFrame }: EighthwallCameraProps) {
       firstFrameFiredRef.current = false
       xr8.removeCameraPipelineModule('eighthwall-camera')
     }
-  }, [xr8])
+  }, [xr8, fov])
 
   useFrame(({ camera }) => {
     const data = cameraDataRef.current
