@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
 import type { EighthwallCameraProps } from '../types'
@@ -30,7 +30,9 @@ export function EighthwallCamera({ fov, onFirstFrame }: EighthwallCameraProps) {
   const loggedOnce = useRef(false)
   const firstFrameFiredRef = useRef(false)
   const onFirstFrameRef = useRef(onFirstFrame)
-  useEffect(() => { onFirstFrameRef.current = onFirstFrame }, [onFirstFrame])
+  useEffect(() => {
+    onFirstFrameRef.current = onFirstFrame
+  }, [onFirstFrame])
   // オブジェクトを事前確保して再利用（GC圧迫を防ぐ）
   const _position = useRef(new THREE.Vector3())
   const _quaternion = useRef(new THREE.Quaternion())
@@ -45,7 +47,16 @@ export function EighthwallCamera({ fov, onFirstFrame }: EighthwallCameraProps) {
         const estimated = estimateFovFromVideo(videoWidth, videoHeight)
         estimatedFovRef.current = estimated
         const active = fov ?? estimated
-        console.log('[EighthwallCamera] video:', videoWidth, 'x', videoHeight, '— estimated fov:', estimated.toFixed(1), '— active fov:', active.toFixed(1))
+        console.log(
+          '[EighthwallCamera] video:',
+          videoWidth,
+          'x',
+          videoHeight,
+          '— estimated fov:',
+          estimated.toFixed(1),
+          '— active fov:',
+          active.toFixed(1),
+        )
       },
       onUpdate: ({ processCpuResult }: any) => {
         const reality = processCpuResult?.reality

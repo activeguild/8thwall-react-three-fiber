@@ -1,7 +1,14 @@
-import { useRef, useState, useEffect, useLayoutEffect, useCallback, type CSSProperties } from 'react'
 import { Canvas } from '@react-three/fiber'
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { XRContext } from '../context/XRContext'
-import type { XR8Instance, EighthwallCanvasProps } from '../types'
+import type { EighthwallCanvasProps, XR8Instance } from '../types'
 import { extractTargetName } from '../types'
 
 function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: boolean }> {
@@ -15,7 +22,9 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
         // Script is still loading — wait for xr.js to set window.XR8
         // New xr.js sets window.XR8 AFTER preload chunks (xr-tracking.js) load,
         // then dispatches 'xrloaded' 1ms later — so XrController is ready by then.
-        window.addEventListener('xrloaded', () => resolve({ script: existing, isNew: false }), { once: true })
+        window.addEventListener('xrloaded', () => resolve({ script: existing, isNew: false }), {
+          once: true,
+        })
         existing.addEventListener('error', reject, { once: true })
       }
       return
@@ -30,7 +39,21 @@ function loadScript(src: string): Promise<{ script: HTMLScriptElement; isNew: bo
   })
 }
 
-export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = true, disableWorldTracking = true, children, overlayChildren, style, onError, gl: userGl, dpr, id, rearCameraDeviceId, flat = true }: EighthwallCanvasProps) {
+export function EighthwallCanvas({
+  xrSrc,
+  enableSkyEffects = false,
+  autoStart = true,
+  disableWorldTracking = true,
+  children,
+  overlayChildren,
+  style,
+  onError,
+  gl: userGl,
+  dpr,
+  id,
+  rearCameraDeviceId,
+  flat = true,
+}: EighthwallCanvasProps) {
   // Separate canvas for XR8 camera feed (behind) vs R3F 3D scene (front, alpha=true)
   const xrCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [xr8, setXr8] = useState<XR8Instance | null>(null)
@@ -38,9 +61,13 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
   const [isReady, setIsReady] = useState(false) // XR8 initialized but not started
   const [isStarted, setIsStarted] = useState(false) // Camera started
   const onErrorRef = useRef(onError)
-  useEffect(() => { onErrorRef.current = onError }, [onError])
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
 
-  const targetMetadataRef = useRef<Map<string, { imageWidth: number; imageHeight: number }>>(new Map())
+  const targetMetadataRef = useRef<Map<string, { imageWidth: number; imageHeight: number }>>(
+    new Map(),
+  )
 
   const registerTarget = useCallback((path: string) => {
     if (!targetPathsRef.current.includes(path)) {
@@ -83,7 +110,10 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
 
     try {
       console.log('[8thwall-r3f] Starting camera...')
-      xr8.run({ canvas, ...(rearCameraDeviceId ? { cameraConfig: { deviceId: rearCameraDeviceId } } : {}) })
+      xr8.run({
+        canvas,
+        ...(rearCameraDeviceId ? { cameraConfig: { deviceId: rearCameraDeviceId } } : {}),
+      })
       setIsStarted(true)
       return true
     } catch (err) {
@@ -108,8 +138,12 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       let savedMotionPermission: (() => Promise<PermissionState>) | undefined
       let savedOrientationPermission: (() => Promise<PermissionState>) | undefined
       if (disableWorldTracking) {
-        const DME = globalThis.DeviceMotionEvent as typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> }
-        const DOE = globalThis.DeviceOrientationEvent as typeof DeviceOrientationEvent & { requestPermission?: () => Promise<PermissionState> }
+        const DME = globalThis.DeviceMotionEvent as typeof DeviceMotionEvent & {
+          requestPermission?: () => Promise<PermissionState>
+        }
+        const DOE = globalThis.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+          requestPermission?: () => Promise<PermissionState>
+        }
         if (DME.requestPermission) {
           savedMotionPermission = DME.requestPermission
           DME.requestPermission = () => Promise.resolve('granted' as PermissionState)
@@ -121,9 +155,17 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       }
 
       const { script, isNew } = await loadScript(xrSrc)
-      console.log('[8thwall-r3f] loadScript resolved', { isNew, stopped, XR8: window.XR8, XrController: window.XR8?.XrController })
+      console.log('[8thwall-r3f] loadScript resolved', {
+        isNew,
+        stopped,
+        XR8: window.XR8,
+        XrController: window.XR8?.XrController,
+      })
       if (isNew) injectedScript = script
-      if (stopped) { console.log('[8thwall-r3f] stopped before setup, aborting'); return }
+      if (stopped) {
+        console.log('[8thwall-r3f] stopped before setup, aborting')
+        return
+      }
 
       const xr8Instance = window.XR8
       console.log('[8thwall-r3f] XR8 initialized')
@@ -131,7 +173,7 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
 
       // Fetch all registered target JSON files for offline image tracking
       const imageTargetData = await Promise.all(
-        targetPathsRef.current.map((path) => fetch(path).then((r) => r.json()))
+        targetPathsRef.current.map((path) => fetch(path).then((r) => r.json())),
       )
       console.log('[8thwall-r3f] imageTargetData loaded, count:', imageTargetData.length)
 
@@ -163,9 +205,9 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
           xr8Instance.LayersController.configure({
             layers: {
               sky: {
-                invertLayerMask: false
-              }
-            }
+                invertLayerMask: false,
+              },
+            },
           })
           console.log('[8thwall-r3f] LayersController configured with sky layer')
         } else {
@@ -193,19 +235,31 @@ export function EighthwallCanvas({ xrSrc, enableSkyEffects = false, autoStart = 
       if (autoStart && !stopped) {
         const canvas = xrCanvasRef.current
         console.log('[8thwall-r3f] xrCanvasRef.current:', canvas)
-        if (!canvas) { console.warn('[8thwall-r3f] xr canvas is null, cannot run'); return }
+        if (!canvas) {
+          console.warn('[8thwall-r3f] xr canvas is null, cannot run')
+          return
+        }
 
         console.log('[8thwall-r3f] Auto-starting camera (autoStart=true)')
-        xr8Instance.run({ canvas, ...(rearCameraDeviceId ? { cameraConfig: { deviceId: rearCameraDeviceId } } : {}) })
+        xr8Instance.run({
+          canvas,
+          ...(rearCameraDeviceId ? { cameraConfig: { deviceId: rearCameraDeviceId } } : {}),
+        })
         setIsStarted(true)
       } else {
-        console.log('[8thwall-r3f] Camera not started (autoStart=false), call startCamera() to start')
+        console.log(
+          '[8thwall-r3f] Camera not started (autoStart=false), call startCamera() to start',
+        )
       }
 
       // Restore original requestPermission after XR8 has started
       if (disableWorldTracking) {
-        const DME = globalThis.DeviceMotionEvent as typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> }
-        const DOE = globalThis.DeviceOrientationEvent as typeof DeviceOrientationEvent & { requestPermission?: () => Promise<PermissionState> }
+        const DME = globalThis.DeviceMotionEvent as typeof DeviceMotionEvent & {
+          requestPermission?: () => Promise<PermissionState>
+        }
+        const DOE = globalThis.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+          requestPermission?: () => Promise<PermissionState>
+        }
         if (savedMotionPermission) DME.requestPermission = savedMotionPermission
         if (savedOrientationPermission) DOE.requestPermission = savedOrientationPermission
       }

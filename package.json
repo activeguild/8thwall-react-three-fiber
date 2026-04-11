@@ -16,7 +16,11 @@
     "build": "vite build && tsc --emitDeclarationOnly --declarationDir dist",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "check": "biome check --write ."
   },
   "peerDependencies": {
     "@react-three/fiber": ">=8",
@@ -25,6 +29,7 @@
     "three": ">=0.140"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.11",
     "@react-three/fiber": "^8.0.0",
     "@testing-library/react": "^14.0.0",
     "@types/react": "^18.0.0",

@@ -6,19 +6,25 @@ export function SkyEffects({
   detectionThreshold = 0.8,
   onSkyDetected,
   onSkyLost,
-  children
+  children,
 }: SkyEffectsProps) {
   const { xr8 } = useXRContext()
   const [isSkyVisible, setIsSkyVisible] = useState(false)
 
   const onSkyDetectedRef = useRef(onSkyDetected)
   const onSkyLostRef = useRef(onSkyLost)
-  useEffect(() => { onSkyDetectedRef.current = onSkyDetected }, [onSkyDetected])
-  useEffect(() => { onSkyLostRef.current = onSkyLost }, [onSkyLost])
+  useEffect(() => {
+    onSkyDetectedRef.current = onSkyDetected
+  }, [onSkyDetected])
+  useEffect(() => {
+    onSkyLostRef.current = onSkyLost
+  }, [onSkyLost])
 
   const wasDetectedRef = useRef(false)
   const thresholdRef = useRef(detectionThreshold)
-  useEffect(() => { thresholdRef.current = detectionThreshold }, [detectionThreshold])
+  useEffect(() => {
+    thresholdRef.current = detectionThreshold
+  }, [detectionThreshold])
 
   useEffect(() => {
     if (!xr8) return
@@ -42,7 +48,7 @@ export function SkyEffects({
 
         const skySegmentation: SkySegmentation = {
           isSkyDetected,
-          mask: undefined // Could use skyLayer.texture if needed for advanced usage
+          mask: undefined, // Could use skyLayer.texture if needed for advanced usage
         }
 
         // Track state changes
@@ -70,9 +76,5 @@ export function SkyEffects({
     }
   }, [xr8])
 
-  return (
-    <group visible={isSkyVisible}>
-      {children}
-    </group>
-  )
+  return <group visible={isSkyVisible}>{children}</group>
 }

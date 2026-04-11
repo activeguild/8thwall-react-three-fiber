@@ -4,7 +4,11 @@ import type * as THREE from 'three'
 export interface XR8Instance {
   XrController: {
     // imageTargetData: actual JSON content of target files (offline tracking)
-    configure: (config: { imageTargetData?: unknown[]; mirroredDisplay?: boolean; disableWorldTracking?: boolean }) => void
+    configure: (config: {
+      imageTargetData?: unknown[]
+      mirroredDisplay?: boolean
+      disableWorldTracking?: boolean
+    }) => void
     pipelineModule: () => unknown
   }
   GlTextureRenderer: {

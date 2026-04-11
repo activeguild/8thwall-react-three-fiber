@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { XRContext, useXRContext } from '../context/XRContext'
+import { describe, expect, it } from 'vitest'
+import { useXRContext, XRContext } from '../context/XRContext'
 
 function Consumer() {
   const ctx = useXRContext()
@@ -21,9 +21,16 @@ describe('XRContext', () => {
       addCameraPipelineModules: () => {},
     }
     render(
-      <XRContext.Provider value={{ xr8: fakeXr8 as any, registerTarget: () => {}, startCamera: async () => true, getTargetMetadata: () => null }}>
+      <XRContext.Provider
+        value={{
+          xr8: fakeXr8 as any,
+          registerTarget: () => {},
+          startCamera: async () => true,
+          getTargetMetadata: () => null,
+        }}
+      >
         <Consumer />
-      </XRContext.Provider>
+      </XRContext.Provider>,
     )
     expect(screen.getByTestId('xr8').textContent).toBe('has-xr8')
   })

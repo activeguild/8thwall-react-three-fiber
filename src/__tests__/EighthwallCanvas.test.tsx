@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, act } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EighthwallCanvas } from '../components/EighthwallCanvas'
 
 // Mock @react-three/fiber Canvas — captures props for assertion
@@ -42,7 +42,7 @@ describe('EighthwallCanvas', () => {
     const { getByTestId } = render(
       <EighthwallCanvas xrSrc="/xr.js">
         <mesh />
-      </EighthwallCanvas>
+      </EighthwallCanvas>,
     )
     expect(getByTestId('r3f-canvas')).toBeTruthy()
   })
@@ -51,7 +51,7 @@ describe('EighthwallCanvas', () => {
     const { getByText } = render(
       <EighthwallCanvas xrSrc="/xr.js">
         <div>child-content</div>
-      </EighthwallCanvas>
+      </EighthwallCanvas>,
     )
     expect(getByText('child-content')).toBeTruthy()
   })
@@ -71,7 +71,7 @@ describe('EighthwallCanvas', () => {
     render(
       <EighthwallCanvas xrSrc="/xr.js">
         <div />
-      </EighthwallCanvas>
+      </EighthwallCanvas>,
     )
 
     await act(async () => {
@@ -95,7 +95,7 @@ describe('EighthwallCanvas', () => {
     render(
       <EighthwallCanvas xrSrc="/xr.js" gl={{ preserveDrawingBuffer: true }}>
         <div />
-      </EighthwallCanvas>
+      </EighthwallCanvas>,
     )
     const gl = capturedCanvasProps.gl as Record<string, unknown>
     expect(gl.preserveDrawingBuffer).toBe(true)
@@ -106,7 +106,7 @@ describe('EighthwallCanvas', () => {
     render(
       <EighthwallCanvas xrSrc="/xr.js" dpr={2}>
         <div />
-      </EighthwallCanvas>
+      </EighthwallCanvas>,
     )
     expect(capturedCanvasProps.dpr).toBe(2)
   })
@@ -115,7 +115,7 @@ describe('EighthwallCanvas', () => {
     const { container } = render(
       <EighthwallCanvas xrSrc="/xr.js" id="ar-canvas">
         <div />
-      </EighthwallCanvas>
+      </EighthwallCanvas>,
     )
     expect(container.querySelector('#ar-canvas')).toBeTruthy()
   })

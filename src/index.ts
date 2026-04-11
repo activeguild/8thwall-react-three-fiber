@@ -1,20 +1,20 @@
-export { EighthwallCanvas } from './components/EighthwallCanvas'
+export { checkBrowserCompatibility } from './compatibility'
 export { EighthwallCamera } from './components/EighthwallCamera'
+export { EighthwallCanvas } from './components/EighthwallCanvas'
 export { ImageTracker } from './components/ImageTracker'
 export { SkyEffects } from './components/SkyEffects'
 export { SkyReplacement } from './components/SkyReplacement'
 export { useXRContext } from './context/XRContext'
-export { permissionGranted, permissionDenied, permissionRequest } from './permissions'
-export { checkBrowserCompatibility } from './compatibility'
+export { permissionDenied, permissionGranted, permissionRequest } from './permissions'
 export type {
-  EighthwallCanvasProps,
+  CompatibilityResult,
   EighthwallCameraProps,
-  ImageTrackerProps,
+  EighthwallCanvasProps,
   ImageFoundEvent,
+  ImageTrackerProps,
   SkyEffectsProps,
   SkyReplacementProps,
   SkySegmentation,
   XR8Instance,
   XRContextValue,
-  CompatibilityResult,
 } from './types'

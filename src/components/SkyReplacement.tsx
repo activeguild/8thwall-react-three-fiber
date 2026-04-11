@@ -1,5 +1,5 @@
-import { useEffect, useRef, useMemo } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useXRContext } from '../context/XRContext'
 import type { SkyReplacementProps } from '../types'
@@ -110,7 +110,6 @@ export function SkyReplacement({
     })
   }, [])
 
-
   // Update textures
   useFrame(() => {
     if (!materialRef.current) return
@@ -187,7 +186,13 @@ export function SkyReplacement({
         }
 
         // Update mask texture from sky layer
-        if (skyLayer.texture && skyLayer.textureWidth && skyLayer.textureHeight && glCtx && framebuffer) {
+        if (
+          skyLayer.texture &&
+          skyLayer.textureWidth &&
+          skyLayer.textureHeight &&
+          glCtx &&
+          framebuffer
+        ) {
           try {
             const width = skyLayer.textureWidth
             const height = skyLayer.textureHeight
@@ -206,7 +211,7 @@ export function SkyReplacement({
               glCtx.COLOR_ATTACHMENT0,
               glCtx.TEXTURE_2D,
               webglTexture,
-              0
+              0,
             )
 
             // Check if framebuffer is complete
@@ -262,7 +267,6 @@ export function SkyReplacement({
       }
     }
   }, [xr8])
-
 
   return (
     <mesh ref={meshRef} position={[0, 0, -1]} renderOrder={999}>
